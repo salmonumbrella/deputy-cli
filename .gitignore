@@ -27,6 +27,9 @@ docs/
 .specstory/
 plans/
 
+# Claude Code
+CLAUDE.md
+
 # Build artifacts
 api.test
 digest.txt
