@@ -1,0 +1,32 @@
+# Binaries
+bin/
+/deputy
+
+# Dependencies
+vendor/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+
+# Test
+coverage.out
+coverage.html
+
+# Build
+dist/
+docs/
+
+# Cursor & Specstory
+.cursor/
+.specstory/
+plans/
+
+# Build artifacts
+api.test
+digest.txt

@@ -1,0 +1,18 @@
+pre-commit:
+  parallel: true
+  commands:
+    fmt-check:
+      glob: "**/*.go"
+      run: gofumpt -l . | grep . && echo "Run 'make fmt' to fix" && exit 1 || exit 0
+    lint:
+      glob: "**/*.go"
+      run: golangci-lint run --timeout 2m
+    build:
+      glob: "**/*.go"
+      run: go build ./...
+
+pre-push:
+  parallel: true
+  commands:
+    test:
+      run: go test ./...
