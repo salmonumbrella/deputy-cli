@@ -201,15 +201,6 @@ func isKeyringError(errMsg string) bool {
 	return false
 }
 
-func containsAny(s string, substrs ...string) bool {
-	for _, sub := range substrs {
-		if strings.Contains(s, sub) {
-			return true
-		}
-	}
-	return false
-}
-
 func TestDefaultClientFactory_NewClient(t *testing.T) {
 	t.Run("delegates to getClient", func(t *testing.T) {
 		factory := DefaultClientFactory{}
