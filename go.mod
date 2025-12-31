@@ -6,7 +6,7 @@ require (
 	github.com/99designs/keyring v1.2.2
 	github.com/itchyny/gojq v0.12.18
 	github.com/spf13/cobra v1.10.2
-	github.com/stretchr/testify v1.7.0
+	github.com/stretchr/testify v1.11.1
 )
 
 require (
@@ -23,5 +23,5 @@ require (
 	github.com/spf13/pflag v1.0.9 // indirect
 	golang.org/x/sys v0.39.0 // indirect
 	golang.org/x/term v0.38.0 // indirect
-	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
+	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
