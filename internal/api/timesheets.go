@@ -211,6 +211,16 @@ func (s *TimesheetsService) SetPayRule(ctx context.Context, timesheetID int, pay
 		return nil, fmt.Errorf("pay rule %d not found", payRuleID)
 	}
 
+	// Validate hourly rate
+	if rules[0].HourlyRate <= 0 {
+		return nil, fmt.Errorf("pay rule %d has invalid hourly rate: %.2f", payRuleID, rules[0].HourlyRate)
+	}
+
+	// Validate timesheet has hours
+	if timesheet.TotalTime <= 0 {
+		return nil, fmt.Errorf("timesheet %d has no hours recorded (TotalTime: %.2f)", timesheetID, timesheet.TotalTime)
+	}
+
 	// Calculate cost: hourly rate × hours
 	cost := rules[0].HourlyRate * timesheet.TotalTime
 
