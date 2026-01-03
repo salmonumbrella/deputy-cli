@@ -111,3 +111,123 @@ func (s *TimesheetsService) Update(ctx context.Context, id int, input *UpdateTim
 	err = s.client.do(ctx, "POST", path, bytes.NewReader(body), &timesheet)
 	return &timesheet, err
 }
+
+// PayRule represents a pay rule in Deputy
+type PayRule struct {
+	Id         int     `json:"Id"`
+	PayTitle   string  `json:"PayTitle"`
+	HourlyRate float64 `json:"HourlyRate"`
+}
+
+// TimesheetPayReturn links a pay rule to a timesheet
+type TimesheetPayReturn struct {
+	Id        int     `json:"Id"`
+	Timesheet int     `json:"Timesheet"`
+	PayRule   int     `json:"PayRule"`
+	Value     float64 `json:"Value"`
+	Cost      float64 `json:"Cost"`
+	Overridden bool   `json:"Overridden"`
+}
+
+// ListPayRules returns all pay rules, optionally filtered by hourly rate
+func (s *TimesheetsService) ListPayRules(ctx context.Context, hourlyRate *float64) ([]PayRule, error) {
+	input := &QueryInput{}
+	if hourlyRate != nil {
+		input.Search = map[string]interface{}{
+			"s1": map[string]interface{}{"field": "HourlyRate", "type": "eq", "data": *hourlyRate},
+		}
+	}
+
+	body, err := json.Marshal(input)
+	if err != nil {
+		return nil, err
+	}
+
+	var rules []PayRule
+	err = s.client.do(ctx, "POST", "/resource/PayRules/QUERY", bytes.NewReader(body), &rules)
+	return rules, err
+}
+
+// GetPayReturn gets the pay return record for a timesheet
+func (s *TimesheetsService) GetPayReturn(ctx context.Context, timesheetID int) (*TimesheetPayReturn, error) {
+	input := &QueryInput{
+		Search: map[string]interface{}{
+			"s1": map[string]interface{}{"field": "Timesheet", "type": "eq", "data": timesheetID},
+		},
+	}
+
+	body, err := json.Marshal(input)
+	if err != nil {
+		return nil, err
+	}
+
+	var returns []TimesheetPayReturn
+	err = s.client.do(ctx, "POST", "/resource/TimesheetPayReturn/QUERY", bytes.NewReader(body), &returns)
+	if err != nil {
+		return nil, err
+	}
+	if len(returns) == 0 {
+		return nil, fmt.Errorf("no pay return found for timesheet %d", timesheetID)
+	}
+	return &returns[0], nil
+}
+
+// SetPayRuleInput for updating a timesheet's pay rule
+type SetPayRuleInput struct {
+	PayRule    int     `json:"PayRule"`
+	Cost       float64 `json:"Cost"`
+	Overridden bool    `json:"Overridden"`
+}
+
+// SetPayRule sets the pay rule for a timesheet
+func (s *TimesheetsService) SetPayRule(ctx context.Context, timesheetID int, payRuleID int) (*TimesheetPayReturn, error) {
+	// First get the existing pay return to get its ID
+	existing, err := s.GetPayReturn(ctx, timesheetID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Get the timesheet to calculate cost
+	timesheet, err := s.Get(ctx, timesheetID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Get the pay rule to get its hourly rate
+	var rules []PayRule
+	ruleInput := &QueryInput{
+		Search: map[string]interface{}{
+			"s1": map[string]interface{}{"field": "Id", "type": "eq", "data": payRuleID},
+		},
+	}
+	ruleBody, err := json.Marshal(ruleInput)
+	if err != nil {
+		return nil, err
+	}
+	if err := s.client.do(ctx, "POST", "/resource/PayRules/QUERY", bytes.NewReader(ruleBody), &rules); err != nil {
+		return nil, err
+	}
+	if len(rules) == 0 {
+		return nil, fmt.Errorf("pay rule %d not found", payRuleID)
+	}
+
+	// Calculate cost: hourly rate × hours
+	cost := rules[0].HourlyRate * timesheet.TotalTime
+
+	// Update the pay return
+	input := &SetPayRuleInput{
+		PayRule:    payRuleID,
+		Cost:       cost,
+		Overridden: true,
+	}
+
+	body, err := json.Marshal(input)
+	if err != nil {
+		return nil, err
+	}
+
+	var result TimesheetPayReturn
+	path := fmt.Sprintf("/resource/TimesheetPayReturn/%d", existing.Id)
+	err = s.client.do(ctx, "POST", path, bytes.NewReader(body), &result)
+	return &result, err
+}

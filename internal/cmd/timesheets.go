@@ -23,6 +23,8 @@ func newTimesheetsCmd() *cobra.Command {
 	cmd.AddCommand(newTimesheetsListCmd())
 	cmd.AddCommand(newTimesheetsGetCmd())
 	cmd.AddCommand(newTimesheetsUpdateCmd())
+	cmd.AddCommand(newTimesheetsListPayRulesCmd())
+	cmd.AddCommand(newTimesheetsSetPayRuleCmd())
 	cmd.AddCommand(newTimesheetsClockInCmd())
 	cmd.AddCommand(newTimesheetsClockOutCmd())
 	cmd.AddCommand(newTimesheetsStartBreakCmd())
@@ -172,6 +174,104 @@ Currently supports updating the cost/pay amount for a timesheet.`,
 	}
 
 	cmd.Flags().Float64Var(&cost, "cost", 0, "Total cost/pay amount for the timesheet")
+
+	return cmd
+}
+
+func newTimesheetsListPayRulesCmd() *cobra.Command {
+	var hourlyRate float64
+
+	cmd := &cobra.Command{
+		Use:   "list-pay-rules",
+		Short: "List available pay rules",
+		Long: `List pay rules available in Deputy.
+
+Use --hourly-rate to filter by a specific rate.`,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			client, err := getClientFromContext(cmd.Context())
+			if err != nil {
+				return err
+			}
+
+			var ratePtr *float64
+			if cmd.Flags().Changed("hourly-rate") {
+				ratePtr = &hourlyRate
+			}
+
+			rules, err := client.Timesheets().ListPayRules(cmd.Context(), ratePtr)
+			if err != nil {
+				return err
+			}
+
+			format := outfmt.GetFormat(cmd.Context())
+			if format == "json" {
+				f := outfmt.New(cmd.Context())
+				return f.Output(rules)
+			}
+
+			f := outfmt.New(cmd.Context())
+			f.StartTable([]string{"ID", "TITLE", "HOURLY RATE"})
+			for _, r := range rules {
+				f.Row(
+					strconv.Itoa(r.Id),
+					r.PayTitle,
+					fmt.Sprintf("%.2f", r.HourlyRate),
+				)
+			}
+			f.EndTable()
+			return nil
+		},
+	}
+
+	cmd.Flags().Float64Var(&hourlyRate, "hourly-rate", 0, "Filter by hourly rate")
+
+	return cmd
+}
+
+func newTimesheetsSetPayRuleCmd() *cobra.Command {
+	var payRuleID int
+
+	cmd := &cobra.Command{
+		Use:   "set-pay-rule <timesheet-id>",
+		Short: "Set the pay rule for a timesheet",
+		Long: `Set the pay rule for an approved timesheet.
+
+This updates the timesheet's pay return to use the specified pay rule
+and automatically calculates the cost based on the rule's hourly rate.`,
+		Args: cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			timesheetID, err := strconv.Atoi(args[0])
+			if err != nil {
+				return fmt.Errorf("invalid timesheet ID: %s", args[0])
+			}
+
+			if payRuleID == 0 {
+				return errors.New("--pay-rule is required")
+			}
+
+			client, err := getClientFromContext(cmd.Context())
+			if err != nil {
+				return err
+			}
+
+			result, err := client.Timesheets().SetPayRule(cmd.Context(), timesheetID, payRuleID)
+			if err != nil {
+				return err
+			}
+
+			format := outfmt.GetFormat(cmd.Context())
+			if format == "json" {
+				f := outfmt.New(cmd.Context())
+				return f.Output(result)
+			}
+
+			io := iocontext.FromContext(cmd.Context())
+			_, _ = fmt.Fprintf(io.Out, "Set pay rule %d on timesheet %d (cost: %.2f)\n", result.PayRule, result.Timesheet, result.Cost)
+			return nil
+		},
+	}
+
+	cmd.Flags().IntVar(&payRuleID, "pay-rule", 0, "Pay rule ID (required)")
 
 	return cmd
 }
