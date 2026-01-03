@@ -232,12 +232,20 @@ func newTimesheetsSetPayRuleCmd() *cobra.Command {
 	var payRuleID int
 
 	cmd := &cobra.Command{
-		Use:   "set-pay-rule <timesheet-id>",
-		Short: "Set the pay rule for a timesheet",
-		Long: `Set the pay rule for an approved timesheet.
+		Use:     "select-pay-rule <timesheet-id>",
+		Aliases: []string{"set-pay-rule"},
+		Short:   "Select a pay rule for a timesheet",
+		Long: `Select a pay rule for an approved timesheet.
 
-This updates the timesheet's pay return to use the specified pay rule
-and automatically calculates the cost based on the rule's hourly rate.`,
+Use list-pay-rules to find available pay rules, then assign one to a timesheet.
+The cost is automatically calculated as: hourly_rate × hours.
+
+Example:
+  # Find 190/hr pay rules
+  deputy timesheets list-pay-rules --hourly-rate 190
+
+  # Assign pay rule 304 to timesheet 19379
+  deputy timesheets select-pay-rule 19379 --pay-rule 304`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			timesheetID, err := strconv.Atoi(args[0])
@@ -266,7 +274,7 @@ and automatically calculates the cost based on the rule's hourly rate.`,
 			}
 
 			io := iocontext.FromContext(cmd.Context())
-			_, _ = fmt.Fprintf(io.Out, "Set pay rule %d on timesheet %d (cost: %.2f)\n", result.PayRule, result.Timesheet, result.Cost)
+			_, _ = fmt.Fprintf(io.Out, "Assigned pay rule %d to timesheet %d (total: $%.2f)\n", result.PayRule, result.Timesheet, result.Cost)
 			return nil
 		},
 	}
