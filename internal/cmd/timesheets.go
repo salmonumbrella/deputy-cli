@@ -22,6 +22,7 @@ func newTimesheetsCmd() *cobra.Command {
 
 	cmd.AddCommand(newTimesheetsListCmd())
 	cmd.AddCommand(newTimesheetsGetCmd())
+	cmd.AddCommand(newTimesheetsUpdateCmd())
 	cmd.AddCommand(newTimesheetsClockInCmd())
 	cmd.AddCommand(newTimesheetsClockOutCmd())
 	cmd.AddCommand(newTimesheetsStartBreakCmd())
@@ -125,6 +126,54 @@ func newTimesheetsGetCmd() *cobra.Command {
 			return nil
 		},
 	}
+}
+
+func newTimesheetsUpdateCmd() *cobra.Command {
+	var cost float64
+
+	cmd := &cobra.Command{
+		Use:   "update <id>",
+		Short: "Update a timesheet",
+		Long: `Update a timesheet's properties.
+
+Currently supports updating the cost/pay amount for a timesheet.`,
+		Args: cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			id, err := strconv.Atoi(args[0])
+			if err != nil {
+				return fmt.Errorf("invalid timesheet ID: %s", args[0])
+			}
+
+			client, err := getClientFromContext(cmd.Context())
+			if err != nil {
+				return err
+			}
+
+			input := &api.UpdateTimesheetInput{}
+			if cmd.Flags().Changed("cost") {
+				input.Cost = &cost
+			}
+
+			timesheet, err := client.Timesheets().Update(cmd.Context(), id, input)
+			if err != nil {
+				return err
+			}
+
+			format := outfmt.GetFormat(cmd.Context())
+			if format == "json" {
+				f := outfmt.New(cmd.Context())
+				return f.Output(timesheet)
+			}
+
+			io := iocontext.FromContext(cmd.Context())
+			_, _ = fmt.Fprintf(io.Out, "Updated timesheet %d (cost: %.2f)\n", timesheet.Id, timesheet.Cost)
+			return nil
+		},
+	}
+
+	cmd.Flags().Float64Var(&cost, "cost", 0, "Total cost/pay amount for the timesheet")
+
+	return cmd
 }
 
 func newTimesheetsClockInCmd() *cobra.Command {

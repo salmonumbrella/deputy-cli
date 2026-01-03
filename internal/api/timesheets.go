@@ -20,6 +20,7 @@ type Timesheet struct {
 	IsInProgress    bool    `json:"IsInProgress"`
 	IsLeave         bool    `json:"IsLeave"`
 	Comment         string  `json:"Comment,omitempty"`
+	Cost            float64 `json:"Cost"`
 }
 
 type TimesheetsService struct {
@@ -93,4 +94,20 @@ func (s *TimesheetsService) EndBreak(ctx context.Context, input *ClockInput) err
 	}
 
 	return s.client.do(ctx, "POST", "/supervise/timesheet/resume", bytes.NewReader(body), nil)
+}
+
+type UpdateTimesheetInput struct {
+	Cost *float64 `json:"Cost,omitempty"`
+}
+
+func (s *TimesheetsService) Update(ctx context.Context, id int, input *UpdateTimesheetInput) (*Timesheet, error) {
+	body, err := json.Marshal(input)
+	if err != nil {
+		return nil, err
+	}
+
+	var timesheet Timesheet
+	path := fmt.Sprintf("/resource/Timesheet/%d", id)
+	err = s.client.do(ctx, "POST", path, bytes.NewReader(body), &timesheet)
+	return &timesheet, err
 }
