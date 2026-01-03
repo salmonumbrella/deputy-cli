@@ -18,6 +18,18 @@ func newTimesheetsCmd() *cobra.Command {
 		Use:     "timesheets",
 		Aliases: []string{"timesheet", "ts"},
 		Short:   "Manage timesheets",
+		Long: `Manage timesheets including viewing, clocking in/out, and pay rules.
+
+Pay Rule Commands:
+  list-pay-rules    List available pay rules (filter by --hourly-rate)
+  select-pay-rule   Assign a pay rule to an approved timesheet
+
+Example workflow for setting pay rates:
+  # Find pay rules with $190/hr rate
+  deputy timesheets list-pay-rules --hourly-rate 190
+
+  # Assign pay rule 304 to timesheet 19379
+  deputy timesheets select-pay-rule 19379 --pay-rule 304`,
 	}
 
 	cmd.AddCommand(newTimesheetsListCmd())

@@ -214,7 +214,7 @@ func (s *TimesheetsService) SetPayRule(ctx context.Context, timesheetID int, pay
 	// Calculate cost: hourly rate × hours
 	cost := rules[0].HourlyRate * timesheet.TotalTime
 
-	// Update the pay return
+	// Update the pay return (this sets the pay rule selection)
 	input := &SetPayRuleInput{
 		PayRule:    payRuleID,
 		Cost:       cost,
@@ -228,6 +228,20 @@ func (s *TimesheetsService) SetPayRule(ctx context.Context, timesheetID int, pay
 
 	var result TimesheetPayReturn
 	path := fmt.Sprintf("/resource/TimesheetPayReturn/%d", existing.Id)
-	err = s.client.do(ctx, "POST", path, bytes.NewReader(body), &result)
-	return &result, err
+	if err := s.client.do(ctx, "POST", path, bytes.NewReader(body), &result); err != nil {
+		return nil, err
+	}
+
+	// Also update the timesheet's cost directly (required for cost to sync)
+	tsInput := &UpdateTimesheetInput{Cost: &cost}
+	tsBody, err := json.Marshal(tsInput)
+	if err != nil {
+		return nil, err
+	}
+	tsPath := fmt.Sprintf("/resource/Timesheet/%d", timesheetID)
+	if err := s.client.do(ctx, "POST", tsPath, bytes.NewReader(tsBody), nil); err != nil {
+		return nil, err
+	}
+
+	return &result, nil
 }
