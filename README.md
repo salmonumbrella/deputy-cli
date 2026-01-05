@@ -109,11 +109,26 @@ deputy employees agreed-hours <id>
 ```bash
 deputy timesheets list [--from <date>] [--to <date>]    # List timesheets
 deputy timesheets get <id>                               # Get timesheet details
+deputy timesheets update <id> --cost <amount>            # Update timesheet cost
 deputy timesheets clock-in --employee <id> [--location <id>]
 deputy timesheets clock-out --timesheet <id>             # End timesheet by ID (preferred)
 deputy timesheets clock-out --employee <id>              # End timesheet by employee
 deputy timesheets start-break --timesheet <id>           # Start break
 deputy timesheets end-break --timesheet <id>             # End break
+
+# Pay Rules
+deputy timesheets list-pay-rules                         # List all pay rules
+deputy timesheets list-pay-rules --hourly-rate 190       # Filter by hourly rate
+deputy timesheets select-pay-rule <id> --pay-rule <id>   # Assign pay rule to timesheet
+```
+
+**Example: Set pay rate for approved timesheets**
+```bash
+# 1. Find pay rules with $190/hr rate
+deputy timesheets list-pay-rules --hourly-rate 190
+
+# 2. Assign pay rule 304 to timesheet 19379
+deputy timesheets select-pay-rule 19379 --pay-rule 304
 ```
 
 ### Rosters / Shifts

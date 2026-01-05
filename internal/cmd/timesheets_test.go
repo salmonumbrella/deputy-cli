@@ -76,6 +76,9 @@ func TestTimesheetsCommand_HasAllSubcommands(t *testing.T) {
 	expectedSubcommands := []string{
 		"list",
 		"get",
+		"update",
+		"list-pay-rules",
+		"select-pay-rule",
 		"clock-in",
 		"clock-out",
 		"start-break",
