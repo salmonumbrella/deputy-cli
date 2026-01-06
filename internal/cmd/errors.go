@@ -8,12 +8,12 @@ import (
 	"github.com/salmonumbrella/deputy-cli/internal/api"
 )
 
-// FormatError renders user-friendly errors unless --debug is enabled.
-func FormatError(err error) string {
+// FormatError renders user-friendly errors unless debug is enabled.
+func FormatError(err error, debug bool) string {
 	if err == nil {
 		return ""
 	}
-	if flags.Debug {
+	if debug {
 		return err.Error()
 	}
 

@@ -113,12 +113,7 @@ func TestFormatError(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Save and restore debug flag
-			origDebug := flags.Debug
-			defer func() { flags.Debug = origDebug }()
-			flags.Debug = tt.debug
-
-			got := FormatError(tt.err)
+			got := FormatError(tt.err, tt.debug)
 
 			if tt.equals != "" {
 				if got != tt.equals {

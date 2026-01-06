@@ -83,3 +83,8 @@ func NewRootCmd() *cobra.Command {
 func Execute() error {
 	return NewRootCmd().ExecuteContext(context.Background())
 }
+
+// IsDebug returns the current debug flag value.
+func IsDebug() bool {
+	return flags.Debug
+}
