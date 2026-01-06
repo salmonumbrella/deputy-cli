@@ -107,7 +107,7 @@ deputy employees agreed-hours <id>
 ### Timesheets
 
 ```bash
-deputy timesheets list [--from <date>] [--to <date>]    # List timesheets
+deputy timesheets list [--from <date>] [--to <date>] [--employee <id>]    # List timesheets
 deputy timesheets get <id>                               # Get timesheet details
 deputy timesheets update <id> --cost <amount>            # Update timesheet cost
 deputy timesheets clock-in --employee <id> [--location <id>]
@@ -338,6 +338,7 @@ All commands support these flags:
 
 - `--output, -o <format>` - Output format: `text` or `json` (default: text)
 - `--query, -q <expr>` - JQ filter expression for JSON output
+- `--raw` - Output JSON Lines (one object per line). Implies JSON output if `--output text` is set.
 - `--debug` - Enable debug output (shows API requests/responses)
 - `--no-color` - Disable colored output
 - `--help, -h` - Show help for any command

@@ -74,18 +74,18 @@ func sanitizeErrorResponse(statusCode int, body []byte, debug bool) error {
 		if len(bodyStr) > maxErrorBodyLen {
 			bodyStr = bodyStr[:maxErrorBodyLen] + "..."
 		}
-		return fmt.Errorf("API error %d: %s", statusCode, bodyStr)
+		return &APIError{StatusCode: statusCode, Message: bodyStr}
 	}
 
 	if msg, ok := genericMessages[statusCode]; ok {
-		return fmt.Errorf("API error %d: %s", statusCode, msg)
+		return &APIError{StatusCode: statusCode, Message: msg}
 	}
 
 	// Fallback for unmapped status codes
 	if statusCode >= 500 {
-		return fmt.Errorf("API error %d: server error", statusCode)
+		return &APIError{StatusCode: statusCode, Message: "server error"}
 	}
-	return fmt.Errorf("API error %d: request failed", statusCode)
+	return &APIError{StatusCode: statusCode, Message: "request failed"}
 }
 
 // buildURL constructs a URL with optional query parameters for pagination.

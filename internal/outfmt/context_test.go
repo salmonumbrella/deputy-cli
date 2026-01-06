@@ -34,3 +34,17 @@ func TestQueryContext_Default(t *testing.T) {
 	query := GetQuery(ctx)
 	assert.Equal(t, "", query) // Default should be empty
 }
+
+func TestRawContext_RoundTrip(t *testing.T) {
+	ctx := WithRaw(context.Background(), true)
+
+	raw := IsRaw(ctx)
+	assert.True(t, raw)
+}
+
+func TestRawContext_Default(t *testing.T) {
+	ctx := context.Background()
+
+	raw := IsRaw(ctx)
+	assert.False(t, raw)
+}

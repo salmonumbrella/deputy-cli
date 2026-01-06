@@ -47,14 +47,65 @@ Example workflow for setting pay rates:
 
 func newTimesheetsListCmd() *cobra.Command {
 	var limit, offset int
+	var fromDate string
+	var toDate string
+	var employeeID int
 
 	cmd := &cobra.Command{
 		Use:   "list",
-		Short: "List my timesheets",
+		Short: "List timesheets",
+		Long: `List timesheets.
+
+Without filters, this returns your timesheets. Use --employee to query a
+specific employee's timesheets (requires permission). Use --from/--to to
+filter by date (YYYY-MM-DD).`,
+		Example: `  deputy timesheets list --from 2024-01-01 --to 2024-01-31
+  deputy timesheets list --employee 123 --from 2024-01-01 --to 2024-01-31 -o json -q '[.[].Id]'
+  deputy timesheets list --employee 123 --from 2024-01-01 --to 2024-01-31 --raw`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			client, err := getClientFromContext(cmd.Context())
 			if err != nil {
 				return err
+			}
+
+			from, hasFrom, err := parseDateFlag(fromDate, "--from")
+			if err != nil {
+				return err
+			}
+			to, hasTo, err := parseDateFlag(toDate, "--to")
+			if err != nil {
+				return err
+			}
+			if hasFrom && hasTo && from.After(to) {
+				return fmt.Errorf("--from must be on or before --to")
+			}
+
+			if employeeID != 0 {
+				filters := []string{fmt.Sprintf("Employee=%d", employeeID)}
+				if hasFrom {
+					filters = append(filters, "Date>="+fromDate)
+				}
+				if hasTo {
+					filters = append(filters, "Date<="+toDate)
+				}
+
+				search, err := parseFilters(filters)
+				if err != nil {
+					return err
+				}
+
+				input := &api.QueryInput{
+					Search: search,
+					Max:    limit,
+					Start:  offset,
+				}
+
+				timesheets, err := client.Timesheets().Query(cmd.Context(), input)
+				if err != nil {
+					return err
+				}
+
+				return outputTimesheets(cmd, timesheets)
 			}
 
 			opts := &api.ListOptions{Limit: limit, Offset: offset}
@@ -63,38 +114,22 @@ func newTimesheetsListCmd() *cobra.Command {
 				return err
 			}
 
-			format := outfmt.GetFormat(cmd.Context())
-			if format == "json" {
-				f := outfmt.New(cmd.Context())
-				return f.Output(timesheets)
+			if hasFrom || hasTo {
+				timesheets, err = filterTimesheetsByDate(timesheets, from, to, hasFrom, hasTo)
+				if err != nil {
+					return err
+				}
 			}
 
-			f := outfmt.New(cmd.Context())
-			f.StartTable([]string{"ID", "DATE", "START", "END", "TOTAL", "STATUS"})
-			for _, t := range timesheets {
-				start := time.Unix(t.StartTime, 0).Format("15:04")
-				end := "-"
-				status := "In Progress"
-				if t.EndTime > 0 {
-					end = time.Unix(t.EndTime, 0).Format("15:04")
-					status = "Complete"
-				}
-				f.Row(
-					strconv.Itoa(t.Id),
-					t.Date,
-					start,
-					end,
-					t.TotalTimeStr,
-					status,
-				)
-			}
-			f.EndTable()
-			return nil
+			return outputTimesheets(cmd, timesheets)
 		},
 	}
 
 	cmd.Flags().IntVar(&limit, "limit", 0, "Maximum number of results (0 = unlimited)")
 	cmd.Flags().IntVar(&offset, "offset", 0, "Number of results to skip")
+	cmd.Flags().StringVar(&fromDate, "from", "", "Start date (YYYY-MM-DD)")
+	cmd.Flags().StringVar(&toDate, "to", "", "End date (YYYY-MM-DD)")
+	cmd.Flags().IntVar(&employeeID, "employee", 0, "Filter by employee ID (uses resource query)")
 
 	return cmd
 }
@@ -294,6 +329,73 @@ Example:
 	cmd.Flags().IntVar(&payRuleID, "pay-rule", 0, "Pay rule ID (required)")
 
 	return cmd
+}
+
+func parseDateFlag(value, flagName string) (time.Time, bool, error) {
+	if value == "" {
+		return time.Time{}, false, nil
+	}
+	parsed, err := time.Parse("2006-01-02", value)
+	if err != nil {
+		return time.Time{}, false, fmt.Errorf("invalid %s date %q (expected YYYY-MM-DD)", flagName, value)
+	}
+	return parsed, true, nil
+}
+
+func filterTimesheetsByDate(timesheets []api.Timesheet, from, to time.Time, hasFrom, hasTo bool) ([]api.Timesheet, error) {
+	if !hasFrom && !hasTo {
+		return timesheets, nil
+	}
+
+	filtered := make([]api.Timesheet, 0, len(timesheets))
+	for _, t := range timesheets {
+		if t.Date == "" {
+			continue
+		}
+		parsed, err := time.Parse("2006-01-02", t.Date)
+		if err != nil {
+			return nil, fmt.Errorf("timesheet %d has invalid Date %q", t.Id, t.Date)
+		}
+		if hasFrom && parsed.Before(from) {
+			continue
+		}
+		if hasTo && parsed.After(to) {
+			continue
+		}
+		filtered = append(filtered, t)
+	}
+
+	return filtered, nil
+}
+
+func outputTimesheets(cmd *cobra.Command, timesheets []api.Timesheet) error {
+	format := outfmt.GetFormat(cmd.Context())
+	if format == "json" {
+		f := outfmt.New(cmd.Context())
+		return f.Output(timesheets)
+	}
+
+	f := outfmt.New(cmd.Context())
+	f.StartTable([]string{"ID", "DATE", "START", "END", "TOTAL", "STATUS"})
+	for _, t := range timesheets {
+		start := time.Unix(t.StartTime, 0).Format("15:04")
+		end := "-"
+		status := "In Progress"
+		if t.EndTime > 0 {
+			end = time.Unix(t.EndTime, 0).Format("15:04")
+			status = "Complete"
+		}
+		f.Row(
+			strconv.Itoa(t.Id),
+			t.Date,
+			start,
+			end,
+			t.TotalTimeStr,
+			status,
+		)
+	}
+	f.EndTable()
+	return nil
 }
 
 func newTimesheetsClockInCmd() *cobra.Command {

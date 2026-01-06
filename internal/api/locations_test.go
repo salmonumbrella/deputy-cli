@@ -57,6 +57,40 @@ func TestLocationsService_List(t *testing.T) {
 	assert.Equal(t, "Branch Office", locations[1].CompanyName)
 }
 
+func TestLocationsService_List_FallbackCompany(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case strings.HasSuffix(r.URL.Path, "/supervise/location/simplified"):
+			w.WriteHeader(http.StatusNotFound)
+			_, _ = w.Write([]byte(`{"error": "not found"}`))
+		case strings.HasSuffix(r.URL.Path, "/resource/Company"):
+			w.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(w).Encode([]Location{
+				{
+					Id:          10,
+					CompanyName: "Fallback Location",
+					Code:        "FB",
+					Address:     "1 Fallback Rd",
+					Active:      true,
+					Timezone:    "Australia/Sydney",
+				},
+			})
+		default:
+			w.WriteHeader(http.StatusNotFound)
+		}
+	}))
+	defer server.Close()
+
+	client := newTestClient(server.URL, "test-token")
+
+	locations, err := client.Locations().List(context.Background(), nil)
+	require.NoError(t, err)
+	require.Len(t, locations, 1)
+	assert.Equal(t, 10, locations[0].Id)
+	assert.Equal(t, "Fallback Location", locations[0].CompanyName)
+	assert.Equal(t, "FB", locations[0].Code)
+}
+
 func TestLocationsService_List_Empty(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")

@@ -2,6 +2,8 @@ package cmd
 
 import (
 	"context"
+	"fmt"
+	"strings"
 
 	"github.com/spf13/cobra"
 
@@ -19,6 +21,7 @@ type globalFlags struct {
 	Output  string
 	Debug   bool
 	Query   string
+	Raw     bool
 	NoColor bool
 }
 
@@ -35,8 +38,16 @@ func NewRootCmd() *cobra.Command {
 			if !iocontext.HasIO(ctx) {
 				ctx = iocontext.WithIO(ctx, iocontext.DefaultIO())
 			}
-			ctx = outfmt.WithFormat(ctx, flags.Output)
+			format := strings.ToLower(flags.Output)
+			if format != "text" && format != "json" {
+				return fmt.Errorf("invalid --output %q (expected text or json)", flags.Output)
+			}
+			if flags.Raw && format == "text" {
+				format = "json"
+			}
+			ctx = outfmt.WithFormat(ctx, format)
 			ctx = outfmt.WithQuery(ctx, flags.Query)
+			ctx = outfmt.WithRaw(ctx, flags.Raw)
 			ctx = WithDebug(ctx, flags.Debug)
 			cmd.SetContext(ctx)
 			return nil
@@ -48,6 +59,7 @@ func NewRootCmd() *cobra.Command {
 	cmd.PersistentFlags().StringVarP(&flags.Output, "output", "o", "text", "Output format: text or json")
 	cmd.PersistentFlags().BoolVar(&flags.Debug, "debug", false, "Enable debug logging")
 	cmd.PersistentFlags().StringVarP(&flags.Query, "query", "q", "", "JQ filter for JSON output")
+	cmd.PersistentFlags().BoolVar(&flags.Raw, "raw", false, "Output JSON Lines (one object per line)")
 	cmd.PersistentFlags().BoolVar(&flags.NoColor, "no-color", false, "Disable colored output")
 
 	cmd.AddCommand(newVersionCmd())

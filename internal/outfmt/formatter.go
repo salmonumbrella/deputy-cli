@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"reflect"
 	"text/tabwriter"
 
 	"github.com/itchyny/gojq"
@@ -41,9 +42,11 @@ func (f *Formatter) outputJSON(data any) error {
 		return f.outputJQFiltered(data, query)
 	}
 
-	enc := json.NewEncoder(f.out)
-	enc.SetIndent("", "  ")
-	return enc.Encode(data)
+	if IsRaw(f.ctx) {
+		return outputJSONLines(f.out, data)
+	}
+
+	return encodeJSON(f.out, data, true)
 }
 
 func (f *Formatter) outputJQFiltered(data any, queryStr string) error {
@@ -61,13 +64,45 @@ func (f *Formatter) outputJQFiltered(data any, queryStr string) error {
 		if err, ok := v.(error); ok {
 			return err
 		}
-		enc := json.NewEncoder(f.out)
-		enc.SetIndent("", "  ")
-		if err := enc.Encode(v); err != nil {
+		if err := encodeJSON(f.out, v, !IsRaw(f.ctx)); err != nil {
 			return err
 		}
 	}
 	return nil
+}
+
+func encodeJSON(w io.Writer, v any, pretty bool) error {
+	enc := json.NewEncoder(w)
+	if pretty {
+		enc.SetIndent("", "  ")
+	}
+	return enc.Encode(v)
+}
+
+func outputJSONLines(w io.Writer, data any) error {
+	if data == nil {
+		return encodeJSON(w, nil, false)
+	}
+
+	val := reflect.ValueOf(data)
+	for val.Kind() == reflect.Pointer {
+		if val.IsNil() {
+			return encodeJSON(w, nil, false)
+		}
+		val = val.Elem()
+	}
+
+	switch val.Kind() {
+	case reflect.Slice, reflect.Array:
+		for i := 0; i < val.Len(); i++ {
+			if err := encodeJSON(w, val.Index(i).Interface(), false); err != nil {
+				return err
+			}
+		}
+		return nil
+	default:
+		return encodeJSON(w, data, false)
+	}
 }
 
 func (f *Formatter) StartTable(headers []string) {

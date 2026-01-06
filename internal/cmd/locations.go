@@ -58,6 +58,10 @@ func newLocationsListCmd() *cobra.Command {
 			f := outfmt.New(cmd.Context())
 			f.StartTable([]string{"ID", "NAME", "CODE", "ACTIVE"})
 			for _, l := range locations {
+				code := l.Code
+				if code == "" {
+					code = l.CompanyCode
+				}
 				active := "Yes"
 				if !l.Active {
 					active = "No"
@@ -65,7 +69,7 @@ func newLocationsListCmd() *cobra.Command {
 				f.Row(
 					strconv.Itoa(l.Id),
 					l.CompanyName,
-					l.Code,
+					code,
 					active,
 				)
 			}
@@ -107,10 +111,15 @@ func newLocationsGetCmd() *cobra.Command {
 				return f.Output(location)
 			}
 
+			code := location.Code
+			if code == "" {
+				code = location.CompanyCode
+			}
+
 			io := iocontext.FromContext(cmd.Context())
 			_, _ = fmt.Fprintf(io.Out, "ID:       %d\n", location.Id)
 			_, _ = fmt.Fprintf(io.Out, "Name:     %s\n", location.CompanyName)
-			_, _ = fmt.Fprintf(io.Out, "Code:     %s\n", location.Code)
+			_, _ = fmt.Fprintf(io.Out, "Code:     %s\n", code)
 			_, _ = fmt.Fprintf(io.Out, "Address:  %s\n", location.Address)
 			_, _ = fmt.Fprintf(io.Out, "Timezone: %s\n", location.Timezone)
 			_, _ = fmt.Fprintf(io.Out, "Active:   %t\n", location.Active)

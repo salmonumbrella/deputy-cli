@@ -122,7 +122,7 @@ func TestTimesheetsListCommand(t *testing.T) {
 
 	require.NoError(t, err)
 	output := buf.String()
-	assert.Contains(t, output, "List my timesheets")
+	assert.Contains(t, output, "List timesheets")
 }
 
 // TestTimesheetsListCommand_RequiresAuth tests that list fails without credentials.

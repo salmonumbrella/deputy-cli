@@ -5,12 +5,14 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
 )
 
 type Location struct {
 	Id          int    `json:"Id"`
 	CompanyName string `json:"CompanyName"`
 	Code        string `json:"Code"`
+	CompanyCode string `json:"CompanyCode,omitempty"`
 	Address     string `json:"Address"`
 	Active      bool   `json:"Active"`
 	Timezone    string `json:"Timezone"`
@@ -27,7 +29,25 @@ func (c *Client) Locations() *LocationsService {
 func (s *LocationsService) List(ctx context.Context, opts *ListOptions) ([]Location, error) {
 	var locations []Location
 	err := s.client.doWithOpts(ctx, "GET", "/supervise/location/simplified", nil, &locations, opts)
-	return locations, err
+	if err == nil {
+		return locations, nil
+	}
+
+	if !IsNotFound(err) && !IsForbidden(err) {
+		return nil, err
+	}
+
+	if s.client.debug {
+		_, _ = fmt.Fprintln(os.Stderr, "Debug: locations list fallback to /resource/Company")
+	}
+
+	var fallback []Location
+	fallbackErr := s.client.doWithOpts(ctx, "GET", "/resource/Company", nil, &fallback, opts)
+	if fallbackErr == nil {
+		return fallback, nil
+	}
+
+	return nil, fmt.Errorf("locations list failed: %w (fallback to /resource/Company failed: %v)", err, fallbackErr)
 }
 
 func (s *LocationsService) Get(ctx context.Context, id int) (*Location, error) {

@@ -125,7 +125,8 @@ Examples:
   deputy resource query Employee --filter "Active=1"
   deputy resource query Timesheet --filter "Employee=123" --filter "Date>=2024-01-01"
   deputy resource query Roster --filter "StartTime>2024-01-01" --join Employee --sort StartTime --limit 100
-  deputy resource query Leave --filter "Status=1" --join Employee`,
+  deputy resource query Leave --filter "Status=1" --join Employee
+  one_month_ago=$(date -v-1m +%Y-%m-%d); deputy resource query Timesheet --filter "Date>=$one_month_ago" --raw`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			resourceName := args[0]

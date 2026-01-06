@@ -150,6 +150,29 @@ func TestFormatter_JSONWithArrayQuery(t *testing.T) {
 	assert.Contains(t, output, `"c"`)
 }
 
+func TestFormatter_JSONLinesRaw(t *testing.T) {
+	out := &bytes.Buffer{}
+	ctx := WithFormat(testContext(out), "json")
+	ctx = WithRaw(ctx, true)
+	f := New(ctx)
+
+	data := []map[string]any{
+		{"id": 1, "name": "Alice"},
+		{"id": 2, "name": "Bob"},
+	}
+
+	err := f.Output(data)
+	require.NoError(t, err)
+
+	output := out.String()
+	lines := bytes.Split(bytes.TrimSpace([]byte(output)), []byte("\n"))
+	require.Len(t, lines, 2)
+	assert.Contains(t, string(lines[0]), "\"id\":1")
+	assert.Contains(t, string(lines[0]), "\"name\":\"Alice\"")
+	assert.Contains(t, string(lines[1]), "\"id\":2")
+	assert.Contains(t, string(lines[1]), "\"name\":\"Bob\"")
+}
+
 func TestFormatter_EndTableWithoutStart(t *testing.T) {
 	out := &bytes.Buffer{}
 	ctx := testContext(out)

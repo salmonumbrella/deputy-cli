@@ -7,6 +7,7 @@ type contextKey string
 const (
 	formatKey contextKey = "format"
 	queryKey  contextKey = "query"
+	rawKey    contextKey = "raw"
 )
 
 func WithFormat(ctx context.Context, format string) context.Context {
@@ -29,4 +30,15 @@ func GetQuery(ctx context.Context) string {
 		return q
 	}
 	return ""
+}
+
+func WithRaw(ctx context.Context, raw bool) context.Context {
+	return context.WithValue(ctx, rawKey, raw)
+}
+
+func IsRaw(ctx context.Context) bool {
+	if raw, ok := ctx.Value(rawKey).(bool); ok {
+		return raw
+	}
+	return false
 }

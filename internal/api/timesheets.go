@@ -37,6 +37,25 @@ func (s *TimesheetsService) List(ctx context.Context, opts *ListOptions) ([]Time
 	return timesheets, err
 }
 
+func (s *TimesheetsService) Query(ctx context.Context, input *QueryInput) ([]Timesheet, error) {
+	results, err := s.client.Resource("Timesheet").Query(ctx, input)
+	if err != nil {
+		return nil, err
+	}
+
+	payload, err := json.Marshal(results)
+	if err != nil {
+		return nil, err
+	}
+
+	var timesheets []Timesheet
+	if err := json.Unmarshal(payload, &timesheets); err != nil {
+		return nil, err
+	}
+
+	return timesheets, nil
+}
+
 func (s *TimesheetsService) Get(ctx context.Context, id int) (*Timesheet, error) {
 	var timesheet Timesheet
 	path := fmt.Sprintf("/supervise/timesheet/%d", id)
