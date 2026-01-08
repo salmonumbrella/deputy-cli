@@ -14,58 +14,7 @@ import (
 	"github.com/salmonumbrella/deputy-cli/internal/api"
 	"github.com/salmonumbrella/deputy-cli/internal/iocontext"
 	"github.com/salmonumbrella/deputy-cli/internal/outfmt"
-	"github.com/salmonumbrella/deputy-cli/internal/secrets"
 )
-
-// leaveTestServerTransport redirects all requests to a test server
-type leaveTestServerTransport struct {
-	testServerURL string
-	underlying    http.RoundTripper
-}
-
-func (t *leaveTestServerTransport) RoundTrip(req *http.Request) (*http.Response, error) {
-	// Replace the URL with test server URL, keeping the path and query string
-	testURL := t.testServerURL + req.URL.Path
-	if req.URL.RawQuery != "" {
-		testURL += "?" + req.URL.RawQuery
-	}
-	newReq, err := http.NewRequestWithContext(req.Context(), req.Method, testURL, req.Body)
-	if err != nil {
-		return nil, err
-	}
-	// Copy headers
-	newReq.Header = req.Header
-	return t.underlying.RoundTrip(newReq)
-}
-
-// newLeaveTestClient creates a client configured to use a test server
-func newLeaveTestClient(serverURL, token string) *api.Client {
-	creds := &secrets.Credentials{
-		Token:   token,
-		Install: "test",
-		Geo:     "au",
-	}
-	client := api.NewClient(creds)
-	// Replace the HTTP client's transport to redirect to test server
-	client.SetHTTPClient(&http.Client{
-		Transport: &leaveTestServerTransport{
-			testServerURL: serverURL,
-			underlying:    http.DefaultTransport,
-		},
-	})
-	return client
-}
-
-/*
-TESTABILITY NOTES
-
-The leave commands use getClientFromContext() which supports dependency injection
-via the ClientFactory pattern. Tests can inject a mock client factory to test
-commands without real keychain or API access.
-
-The test infrastructure above (leaveTestServerTransport, newLeaveTestClient)
-enables testing with a mock HTTP server.
-*/
 
 // TestLeaveCommand_ViaRootCmd verifies the leave command is properly registered
 func TestLeaveCommand_ViaRootCmd(t *testing.T) {
@@ -386,7 +335,7 @@ func TestLeaveCommand_WithMockClient(t *testing.T) {
 		}))
 		defer server.Close()
 
-		client := newLeaveTestClient(server.URL, "test-token")
+		client := newTestClient(server.URL, "test-token")
 		mockFactory := &MockClientFactory{client: client}
 
 		buf := &bytes.Buffer{}
@@ -417,7 +366,7 @@ func TestLeaveCommand_WithMockClient(t *testing.T) {
 		}))
 		defer server.Close()
 
-		client := newLeaveTestClient(server.URL, "test-token")
+		client := newTestClient(server.URL, "test-token")
 		mockFactory := &MockClientFactory{client: client}
 
 		buf := &bytes.Buffer{}
@@ -443,7 +392,7 @@ func TestLeaveCommand_WithMockClient(t *testing.T) {
 		}))
 		defer server.Close()
 
-		client := newLeaveTestClient(server.URL, "test-token")
+		client := newTestClient(server.URL, "test-token")
 		mockFactory := &MockClientFactory{client: client}
 
 		buf := &bytes.Buffer{}
@@ -478,7 +427,7 @@ func TestLeaveCommand_WithMockClient(t *testing.T) {
 		}))
 		defer server.Close()
 
-		client := newLeaveTestClient(server.URL, "test-token")
+		client := newTestClient(server.URL, "test-token")
 		mockFactory := &MockClientFactory{client: client}
 
 		buf := &bytes.Buffer{}
@@ -511,7 +460,7 @@ func TestLeaveCommand_WithMockClient(t *testing.T) {
 		}))
 		defer server.Close()
 
-		client := newLeaveTestClient(server.URL, "test-token")
+		client := newTestClient(server.URL, "test-token")
 		mockFactory := &MockClientFactory{client: client}
 
 		buf := &bytes.Buffer{}
@@ -544,7 +493,7 @@ func TestLeaveCommand_WithMockClient(t *testing.T) {
 		}))
 		defer server.Close()
 
-		client := newLeaveTestClient(server.URL, "test-token")
+		client := newTestClient(server.URL, "test-token")
 		mockFactory := &MockClientFactory{client: client}
 
 		buf := &bytes.Buffer{}
@@ -577,7 +526,7 @@ func TestLeaveCommand_WithMockClient(t *testing.T) {
 		}))
 		defer server.Close()
 
-		client := newLeaveTestClient(server.URL, "test-token")
+		client := newTestClient(server.URL, "test-token")
 		mockFactory := &MockClientFactory{client: client}
 
 		buf := &bytes.Buffer{}
@@ -605,7 +554,7 @@ func TestLeaveCommand_WithMockClient(t *testing.T) {
 		}))
 		defer server.Close()
 
-		client := newLeaveTestClient(server.URL, "test-token")
+		client := newTestClient(server.URL, "test-token")
 		mockFactory := &MockClientFactory{client: client}
 
 		buf := &bytes.Buffer{}
