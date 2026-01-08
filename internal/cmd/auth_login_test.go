@@ -80,6 +80,32 @@ func TestAuthLoginCommand_FactoryError(t *testing.T) {
 	assert.Contains(t, err.Error(), "failed to start auth server")
 }
 
+func TestAuthLoginCommand_StartError(t *testing.T) {
+	expectedErr := errors.New("failed to start server")
+	server := &fakeSetupServer{
+		err: expectedErr,
+	}
+	factory := func(store secrets.Store) (setupServer, error) {
+		return server, nil
+	}
+
+	buf := &bytes.Buffer{}
+	ctx := context.Background()
+	ctx = WithStore(ctx, secrets.NewMockStore())
+	ctx = WithSetupServerFactory(ctx, factory)
+	ctx = iocontext.WithIO(ctx, &iocontext.IO{Out: buf, ErrOut: buf})
+
+	cmd := newAuthLoginCmd()
+	cmd.SetContext(ctx)
+	cmd.SetOut(buf)
+	cmd.SetErr(buf)
+
+	err := cmd.Execute()
+	require.Error(t, err)
+	assert.True(t, server.started)
+	assert.Contains(t, err.Error(), "failed to start server")
+}
+
 func TestAuthTestCommand_UsesAuthClientFactory(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, http.MethodGet, r.Method)
