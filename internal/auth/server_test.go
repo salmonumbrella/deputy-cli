@@ -2,12 +2,16 @@ package auth
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
+	"github.com/salmonumbrella/deputy-cli/internal/api"
 	"github.com/salmonumbrella/deputy-cli/internal/secrets"
 )
 
@@ -1302,6 +1306,318 @@ func TestNewSetupServer(t *testing.T) {
 
 		if server.limiter == nil {
 			t.Error("rate limiter should not be nil")
+		}
+	})
+}
+
+func TestSetupServer_Start_CompleteFlow(t *testing.T) {
+	store := secrets.NewMockStore()
+	server, err := NewSetupServer(store)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	server.SetValidator(func(ctx context.Context, install, geo, token string) error {
+		return nil
+	})
+
+	urlCh := make(chan string, 1)
+	origOpen := openBrowserFunc
+	openBrowserFunc = func(url string) error {
+		urlCh <- url
+		return nil
+	}
+	defer func() { openBrowserFunc = origOpen }()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	resultCh := make(chan *SetupResult, 1)
+	errCh := make(chan error, 1)
+	go func() {
+		res, startErr := server.Start(ctx)
+		if startErr != nil {
+			errCh <- startErr
+			return
+		}
+		resultCh <- res
+	}()
+
+	var baseURL string
+	select {
+	case baseURL = <-urlCh:
+	case <-ctx.Done():
+		t.Fatal("timed out waiting for server url")
+	}
+
+	submitBody := `{"install":"acme","geo":"au","token":"test-token"}`
+	req, err := http.NewRequest(http.MethodPost, baseURL+"/submit", strings.NewReader(submitBody))
+	if err != nil {
+		t.Fatalf("failed to create submit request: %v", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-CSRF-Token", server.csrfToken)
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatalf("submit request failed: %v", err)
+	}
+	_ = resp.Body.Close()
+
+	completeReq, err := http.NewRequest(http.MethodPost, baseURL+"/complete", nil)
+	if err != nil {
+		t.Fatalf("failed to create complete request: %v", err)
+	}
+	completeReq.Header.Set("X-CSRF-Token", server.csrfToken)
+	completeResp, err := http.DefaultClient.Do(completeReq)
+	if err != nil {
+		t.Fatalf("complete request failed: %v", err)
+	}
+	_ = completeResp.Body.Close()
+
+	select {
+	case res := <-resultCh:
+		if res == nil {
+			t.Fatal("expected result, got nil")
+		}
+		if res.Install != "acme" || res.Geo != "au" {
+			t.Fatalf("unexpected result: %+v", res)
+		}
+	case startErr := <-errCh:
+		t.Fatalf("start failed: %v", startErr)
+	case <-ctx.Done():
+		t.Fatal("timed out waiting for result")
+	}
+
+	creds, err := store.Get()
+	if err != nil {
+		t.Fatalf("expected creds stored: %v", err)
+	}
+	if creds.Install != "acme" || creds.Geo != "au" || creds.Token != "test-token" {
+		t.Fatalf("unexpected creds: %+v", creds)
+	}
+}
+
+func TestOpenBrowser_UsesStartCommand(t *testing.T) {
+	expected := map[string]string{
+		"darwin":  "open",
+		"linux":   "xdg-open",
+		"windows": "rundll32",
+	}
+
+	var gotName string
+	var gotArgs []string
+	origStart := startCommand
+	startCommand = func(name string, args ...string) error {
+		gotName = name
+		gotArgs = append([]string{}, args...)
+		return nil
+	}
+	defer func() { startCommand = origStart }()
+
+	origGOOS := goos
+	defer func() { goos = origGOOS }()
+
+	for osName, cmd := range expected {
+		gotName = ""
+		gotArgs = nil
+		goos = osName
+
+		if err := openBrowser("http://example.com"); err != nil {
+			t.Fatalf("openBrowser error for %s: %v", osName, err)
+		}
+		if gotName != cmd {
+			t.Fatalf("expected command %q for %s, got %q", cmd, osName, gotName)
+		}
+		if len(gotArgs) == 0 || !strings.Contains(gotArgs[len(gotArgs)-1], "http://example.com") {
+			t.Fatalf("expected url in args for %s, got %v", osName, gotArgs)
+		}
+	}
+
+	goos = "plan9"
+	if err := openBrowser("http://example.com"); err == nil {
+		t.Fatalf("expected error for unsupported platform")
+	}
+}
+
+func TestSetupServer_Start_ContextCanceled(t *testing.T) {
+	store := secrets.NewMockStore()
+	server, err := NewSetupServer(store)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	server.SetValidator(func(ctx context.Context, install, geo, token string) error {
+		return nil
+	})
+
+	origOpen := openBrowserFunc
+	openBrowserFunc = func(url string) error { return nil }
+	defer func() { openBrowserFunc = origOpen }()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	_, err = server.Start(ctx)
+	if err == nil {
+		t.Fatal("expected context error")
+	}
+}
+
+func TestSetupServer_Start_ShutdownPendingResult(t *testing.T) {
+	store := secrets.NewMockStore()
+	server, err := NewSetupServer(store)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	server.SetValidator(func(ctx context.Context, install, geo, token string) error {
+		return nil
+	})
+
+	origOpen := openBrowserFunc
+	openBrowserFunc = func(url string) error { return nil }
+	defer func() { openBrowserFunc = origOpen }()
+
+	resultCh := make(chan *SetupResult, 1)
+	errCh := make(chan error, 1)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	go func() {
+		res, startErr := server.Start(ctx)
+		if startErr != nil {
+			errCh <- startErr
+			return
+		}
+		resultCh <- res
+	}()
+
+	server.pendingMu.Lock()
+	server.pendingResult = &SetupResult{Install: "acme", Geo: "uk"}
+	server.pendingMu.Unlock()
+	close(server.shutdown)
+
+	select {
+	case res := <-resultCh:
+		if res == nil || res.Install != "acme" || res.Geo != "uk" {
+			t.Fatalf("unexpected result: %+v", res)
+		}
+	case startErr := <-errCh:
+		t.Fatalf("start failed: %v", startErr)
+	case <-ctx.Done():
+		t.Fatal("timed out waiting for result")
+	}
+}
+
+type errResponseWriter struct {
+	header http.Header
+}
+
+func (w *errResponseWriter) Header() http.Header {
+	if w.header == nil {
+		w.header = http.Header{}
+	}
+	return w.header
+}
+
+func (w *errResponseWriter) Write([]byte) (int, error) {
+	return 0, fmt.Errorf("write failed")
+}
+
+func (w *errResponseWriter) WriteHeader(statusCode int) {}
+
+func TestWriteJSON_ErrorPath(t *testing.T) {
+	w := &errResponseWriter{}
+	writeJSON(w, http.StatusOK, map[string]any{"ok": true})
+}
+
+type authTestServerTransport struct {
+	testServerURL string
+	underlying    http.RoundTripper
+}
+
+func (t *authTestServerTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	testURL := t.testServerURL + req.URL.Path
+	if req.URL.RawQuery != "" {
+		testURL += "?" + req.URL.RawQuery
+	}
+	newReq, err := http.NewRequestWithContext(req.Context(), req.Method, testURL, req.Body)
+	if err != nil {
+		return nil, err
+	}
+	newReq.Header = req.Header
+	return t.underlying.RoundTrip(newReq)
+}
+
+func newAuthTestClient(serverURL string, creds *secrets.Credentials) *api.Client {
+	client := api.NewClient(creds)
+	client.SetHTTPClient(&http.Client{
+		Transport: &authTestServerTransport{
+			testServerURL: serverURL,
+			underlying:    http.DefaultTransport,
+		},
+	})
+	return client
+}
+
+func TestValidateCredentials_SuccessAndFailure(t *testing.T) {
+	t.Run("success", func(t *testing.T) {
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(w).Encode(map[string]any{"Name": "Test User"})
+		}))
+		defer server.Close()
+
+		oldNewClient := newAPIClient
+		newAPIClient = func(creds *secrets.Credentials) *api.Client {
+			return newAuthTestClient(server.URL, creds)
+		}
+		defer func() { newAPIClient = oldNewClient }()
+
+		store := secrets.NewMockStore()
+		setup, err := NewSetupServer(store)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		err = setup.validateCredentials(context.Background(), "acme", "au", "token")
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+	})
+
+	t.Run("api error", func(t *testing.T) {
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusUnauthorized)
+		}))
+		defer server.Close()
+
+		oldNewClient := newAPIClient
+		newAPIClient = func(creds *secrets.Credentials) *api.Client {
+			return newAuthTestClient(server.URL, creds)
+		}
+		defer func() { newAPIClient = oldNewClient }()
+
+		store := secrets.NewMockStore()
+		setup, err := NewSetupServer(store)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		err = setup.validateCredentials(context.Background(), "acme", "au", "token")
+		if err == nil {
+			t.Fatal("expected error")
+		}
+	})
+
+	t.Run("missing values", func(t *testing.T) {
+		store := secrets.NewMockStore()
+		setup, err := NewSetupServer(store)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		err = setup.validateCredentials(context.Background(), "", "au", "")
+		if err == nil {
+			t.Fatal("expected error for missing values")
 		}
 	})
 }

@@ -173,6 +173,40 @@ func TestFormatter_JSONLinesRaw(t *testing.T) {
 	assert.Contains(t, string(lines[1]), "\"name\":\"Bob\"")
 }
 
+func TestOutputJSONLines_NilData(t *testing.T) {
+	out := &bytes.Buffer{}
+
+	err := outputJSONLines(out, nil)
+	require.NoError(t, err)
+
+	assert.Equal(t, "null\n", out.String())
+}
+
+func TestOutputJSONLines_PointerToSlice(t *testing.T) {
+	out := &bytes.Buffer{}
+	items := []map[string]any{
+		{"id": 1},
+		{"id": 2},
+	}
+
+	err := outputJSONLines(out, &items)
+	require.NoError(t, err)
+
+	lines := bytes.Split(bytes.TrimSpace(out.Bytes()), []byte("\n"))
+	require.Len(t, lines, 2)
+	assert.Contains(t, string(lines[0]), `"id":1`)
+	assert.Contains(t, string(lines[1]), `"id":2`)
+}
+
+func TestOutputJSONLines_NilPointer(t *testing.T) {
+	out := &bytes.Buffer{}
+	var items *[]map[string]any
+
+	err := outputJSONLines(out, items)
+	require.NoError(t, err)
+	assert.Equal(t, "null\n", out.String())
+}
+
 func TestFormatter_EndTableWithoutStart(t *testing.T) {
 	out := &bytes.Buffer{}
 	ctx := testContext(out)

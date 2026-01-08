@@ -17,33 +17,11 @@ import (
 )
 
 /*
-TESTABILITY LIMITATIONS
+TESTABILITY NOTES
 
-The locations commands cannot be fully tested with mock API clients because they
-use getClient() which reads credentials from the system keychain:
-
-    client, err := getClient()
-
-GOOD NEWS: Some validations happen BEFORE getClient() is called:
-- locations get: ID parsing validation (strconv.Atoi before getClient)
-- locations add: --name validation (checked before getClient)
-- locations update: ID parsing validation (strconv.Atoi before getClient)
-- locations archive: ID parsing validation (strconv.Atoi before getClient)
-- locations delete: ID parsing validation (strconv.Atoi before getClient)
-- locations settings: ID parsing validation (strconv.Atoi before getClient)
-
-These can be tested by observing the error messages.
-
-REFACTORING NEEDED FOR FULL TESTABILITY:
-See employees_test.go for detailed refactoring options.
-
-Until refactoring is done, these tests verify:
-- Command structure and registration
-- Subcommand availability
-- Flag parsing and definitions
-- Argument validation (count, type)
-- Pre-API validation (required flags, ID parsing)
-- Help text and usage strings
+Locations commands use getClientFromContext(), so tests can inject a mock client
+via WithClientFactory. This file focuses on registration/flag validation; see
+locations_commands_test.go for API-backed command execution coverage.
 */
 
 // TestLocationsCommand_ViaRootCmd verifies the locations command is properly registered

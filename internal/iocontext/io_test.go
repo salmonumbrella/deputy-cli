@@ -56,3 +56,11 @@ func TestDefaultIO(t *testing.T) {
 	assert.Equal(t, os.Stderr, io.ErrOut)
 	assert.Equal(t, os.Stdin, io.In)
 }
+
+func TestHasIO(t *testing.T) {
+	ctx := context.Background()
+	assert.False(t, HasIO(ctx))
+
+	ctx = WithIO(ctx, &IO{Out: &bytes.Buffer{}, ErrOut: &bytes.Buffer{}, In: strings.NewReader("input")})
+	assert.True(t, HasIO(ctx))
+}

@@ -450,6 +450,34 @@ func TestDepartmentsCommand_WithMockClient(t *testing.T) {
 		assert.Contains(t, buf.String(), "Updated department 123: Updated Name")
 	})
 
+	t.Run("update returns json output", func(t *testing.T) {
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(w).Encode(api.Department{
+				Id:          123,
+				CompanyName: "Updated Name",
+			})
+		}))
+		defer server.Close()
+
+		client := newTestClient(server.URL, "test-token")
+		mockFactory := &MockClientFactory{client: client}
+
+		buf := &bytes.Buffer{}
+		ctx := WithClientFactory(context.Background(), mockFactory)
+		ctx = iocontext.WithIO(ctx, &iocontext.IO{Out: buf, ErrOut: buf})
+		ctx = outfmt.WithFormat(ctx, "json")
+
+		cmd := newDepartmentsUpdateCmd()
+		cmd.SetContext(ctx)
+		cmd.SetOut(buf)
+		cmd.SetArgs([]string{"123", "--name", "Updated Name"})
+		err := cmd.Execute()
+
+		require.NoError(t, err)
+		assert.Contains(t, buf.String(), `"Id": 123`)
+	})
+
 	t.Run("delete deletes department", func(t *testing.T) {
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Content-Type", "application/json")
@@ -473,4 +501,48 @@ func TestDepartmentsCommand_WithMockClient(t *testing.T) {
 		require.NoError(t, err)
 		assert.Contains(t, buf.String(), "Deleted department 123")
 	})
+}
+
+func TestDepartmentsGetCommand_JSONOutput(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(api.Department{
+			Id:          123,
+			CompanyName: "Engineering",
+		})
+	}))
+	defer server.Close()
+
+	client := newTestClient(server.URL, "test-token")
+	mockFactory := &MockClientFactory{client: client}
+
+	buf := &bytes.Buffer{}
+	ctx := WithClientFactory(context.Background(), mockFactory)
+	ctx = iocontext.WithIO(ctx, &iocontext.IO{Out: buf, ErrOut: buf})
+	ctx = outfmt.WithFormat(ctx, "json")
+
+	cmd := newDepartmentsGetCmd()
+	cmd.SetContext(ctx)
+	cmd.SetOut(buf)
+	cmd.SetArgs([]string{"123"})
+	err := cmd.Execute()
+
+	require.NoError(t, err)
+	assert.Contains(t, buf.String(), `"Id": 123`)
+}
+
+func TestDepartmentsDeleteCommand_Cancelled(t *testing.T) {
+	inBuf := bytes.NewBufferString("n\n")
+	outBuf := &bytes.Buffer{}
+	ctx := context.Background()
+	ctx = iocontext.WithIO(ctx, &iocontext.IO{In: inBuf, Out: outBuf, ErrOut: outBuf})
+
+	cmd := newDepartmentsDeleteCmd()
+	cmd.SetContext(ctx)
+	cmd.SetOut(outBuf)
+	cmd.SetArgs([]string{"123"})
+	err := cmd.Execute()
+
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "operation cancelled")
 }

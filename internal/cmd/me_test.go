@@ -240,6 +240,32 @@ func TestMeCommand_WithMockClient(t *testing.T) {
 		assert.Contains(t, output, "8:00")
 	})
 
+	t.Run("timesheets returns json output", func(t *testing.T) {
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(w).Encode([]api.Timesheet{
+				{Id: 2, Date: "2024-02-01"},
+			})
+		}))
+		defer server.Close()
+
+		client := newTestClient(server.URL, "test-token")
+		mockFactory := &MockClientFactory{client: client}
+
+		buf := &bytes.Buffer{}
+		ctx := WithClientFactory(context.Background(), mockFactory)
+		ctx = iocontext.WithIO(ctx, &iocontext.IO{Out: buf, ErrOut: buf})
+		ctx = outfmt.WithFormat(ctx, "json")
+
+		cmd := newMeTimesheetsCmd()
+		cmd.SetContext(ctx)
+		cmd.SetOut(buf)
+		err := cmd.Execute()
+
+		require.NoError(t, err)
+		assert.Contains(t, buf.String(), `"Id": 2`)
+	})
+
 	t.Run("rosters returns roster table", func(t *testing.T) {
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Content-Type", "application/json")
@@ -264,6 +290,32 @@ func TestMeCommand_WithMockClient(t *testing.T) {
 		require.NoError(t, err)
 		output := buf.String()
 		assert.Contains(t, output, "2024-01-15")
+	})
+
+	t.Run("rosters returns json output", func(t *testing.T) {
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(w).Encode([]api.Roster{
+				{Id: 2, Date: "2024-02-01"},
+			})
+		}))
+		defer server.Close()
+
+		client := newTestClient(server.URL, "test-token")
+		mockFactory := &MockClientFactory{client: client}
+
+		buf := &bytes.Buffer{}
+		ctx := WithClientFactory(context.Background(), mockFactory)
+		ctx = iocontext.WithIO(ctx, &iocontext.IO{Out: buf, ErrOut: buf})
+		ctx = outfmt.WithFormat(ctx, "json")
+
+		cmd := newMeRostersCmd()
+		cmd.SetContext(ctx)
+		cmd.SetOut(buf)
+		err := cmd.Execute()
+
+		require.NoError(t, err)
+		assert.Contains(t, buf.String(), `"Id": 2`)
 	})
 
 	t.Run("leave returns leave table", func(t *testing.T) {
@@ -291,5 +343,31 @@ func TestMeCommand_WithMockClient(t *testing.T) {
 		output := buf.String()
 		assert.Contains(t, output, "2024-01-15")
 		assert.Contains(t, output, "16.0")
+	})
+
+	t.Run("leave returns json output", func(t *testing.T) {
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(w).Encode([]api.Leave{
+				{Id: 2, DateStart: "2024-02-01", DateEnd: "2024-02-02"},
+			})
+		}))
+		defer server.Close()
+
+		client := newTestClient(server.URL, "test-token")
+		mockFactory := &MockClientFactory{client: client}
+
+		buf := &bytes.Buffer{}
+		ctx := WithClientFactory(context.Background(), mockFactory)
+		ctx = iocontext.WithIO(ctx, &iocontext.IO{Out: buf, ErrOut: buf})
+		ctx = outfmt.WithFormat(ctx, "json")
+
+		cmd := newMeLeaveCmd()
+		cmd.SetContext(ctx)
+		cmd.SetOut(buf)
+		err := cmd.Execute()
+
+		require.NoError(t, err)
+		assert.Contains(t, buf.String(), `"Id": 2`)
 	})
 }

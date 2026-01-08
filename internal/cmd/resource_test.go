@@ -203,6 +203,69 @@ func TestResourceInfoCommand_WithMockClient(t *testing.T) {
 	assert.Contains(t, output, "Fields:")
 }
 
+func TestResourceInfoCommand_JSONOutput(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(api.ResourceInfo{
+			Name: "Employee",
+			Fields: map[string]interface{}{
+				"Id": "integer",
+			},
+		})
+	}))
+	defer server.Close()
+
+	client := newTestClient(server.URL, "test-token")
+	mockFactory := &MockClientFactory{client: client}
+
+	buf := &bytes.Buffer{}
+	ctx := WithClientFactory(context.Background(), mockFactory)
+	ctx = iocontext.WithIO(ctx, &iocontext.IO{Out: buf, ErrOut: buf})
+	ctx = outfmt.WithFormat(ctx, "json")
+
+	cmd := newResourceInfoCmd()
+	cmd.SetContext(ctx)
+	cmd.SetOut(buf)
+	cmd.SetArgs([]string{"Employee"})
+	err := cmd.Execute()
+
+	require.NoError(t, err)
+	assert.Contains(t, buf.String(), `"name": "Employee"`)
+}
+
+func TestResourceInfoCommand_AssociationsText(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(api.ResourceInfo{
+			Name: "Roster",
+			Fields: map[string]interface{}{
+				"Id": "integer",
+			},
+			Assocs: map[string]interface{}{
+				"Employee": "Employee",
+			},
+		})
+	}))
+	defer server.Close()
+
+	client := newTestClient(server.URL, "test-token")
+	mockFactory := &MockClientFactory{client: client}
+
+	buf := &bytes.Buffer{}
+	ctx := WithClientFactory(context.Background(), mockFactory)
+	ctx = iocontext.WithIO(ctx, &iocontext.IO{Out: buf, ErrOut: buf})
+
+	cmd := newResourceInfoCmd()
+	cmd.SetContext(ctx)
+	cmd.SetOut(buf)
+	cmd.SetArgs([]string{"Roster"})
+	err := cmd.Execute()
+
+	require.NoError(t, err)
+	assert.Contains(t, buf.String(), "Associations:")
+	assert.Contains(t, buf.String(), "Employee")
+}
+
 // TestResourceQueryCommand verifies the query command is registered with proper args
 func TestResourceQueryCommand(t *testing.T) {
 	root := NewRootCmd()

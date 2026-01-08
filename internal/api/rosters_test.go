@@ -167,6 +167,27 @@ func TestRostersService_Get_NotFound(t *testing.T) {
 	assert.Contains(t, err.Error(), "API error 404")
 }
 
+func TestRostersService_GetSwappable(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodGet, r.Method)
+		assert.Equal(t, "/api/v1/supervise/roster/123/swap", r.URL.Path)
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode([]SwapRoster{
+			{Id: 1, Employee: 10, OperationalUnit: 5},
+			{Id: 2, Employee: 11, OperationalUnit: 5},
+		})
+	}))
+	defer server.Close()
+
+	client := newTestClient(server.URL, "test-token")
+	rosters, err := client.Rosters().GetSwappable(context.Background(), 123)
+	require.NoError(t, err)
+	require.Len(t, rosters, 2)
+	assert.Equal(t, 1, rosters[0].Id)
+	assert.Equal(t, 2, rosters[1].Id)
+}
+
 func TestRostersService_Create(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Verify HTTP method

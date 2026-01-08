@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"errors"
-	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -77,19 +76,24 @@ func TestClientFactoryFromContext(t *testing.T) {
 	})
 
 	t.Run("returns DefaultClientFactory when no factory in context", func(t *testing.T) {
+		oldDefault := defaultClientFactory
+		mockFactory := &MockClientFactory{}
+		defaultClientFactory = mockFactory
+		defer func() { defaultClientFactory = oldDefault }()
+
 		ctx := context.Background()
-
 		factory := ClientFactoryFromContext(ctx)
-
-		assert.IsType(t, DefaultClientFactory{}, factory)
+		assert.Equal(t, mockFactory, factory)
 	})
 
 	t.Run("returns DefaultClientFactory for nil context value", func(t *testing.T) {
-		// Test with empty context (no factory set)
-		factory := ClientFactoryFromContext(context.Background())
+		oldDefault := defaultClientFactory
+		mockFactory := &MockClientFactory{}
+		defaultClientFactory = mockFactory
+		defer func() { defaultClientFactory = oldDefault }()
 
-		_, ok := factory.(DefaultClientFactory)
-		assert.True(t, ok, "should return DefaultClientFactory")
+		factory := ClientFactoryFromContext(context.Background())
+		assert.Equal(t, mockFactory, factory)
 	})
 }
 
@@ -117,111 +121,82 @@ func TestGetClientFromContext(t *testing.T) {
 		assert.Nil(t, client)
 	})
 
-	t.Run("falls back to DefaultClientFactory when no factory in context", func(t *testing.T) {
-		// This will attempt real keychain access
-		// We can't fully test without mocking keychain, but we verify the code path
-		ctx := context.Background()
+	t.Run("falls back to defaultClientFactory when no factory in context", func(t *testing.T) {
+		oldDefault := defaultClientFactory
+		expectedClient := &api.Client{}
+		mockFactory := &MockClientFactory{client: expectedClient}
+		defaultClientFactory = mockFactory
+		defer func() { defaultClientFactory = oldDefault }()
 
-		client, err := getClientFromContext(ctx)
+		client, err := getClientFromContext(context.Background())
 
-		// Either succeeds (credentials exist) or fails with auth/keyring error
-		if err != nil {
-			// On macOS: "not authenticated" when no credentials stored
-			// On Linux CI: "No directory provided for file keyring" when keyring not configured
-			// Both indicate we can't access credentials, which is expected
-			errMsg := err.Error()
-			validError := containsAuthError(err) ||
-				isKeyringError(errMsg)
-			assert.True(t, validError, "unexpected error: %v", err)
-		} else {
-			assert.NotNil(t, client)
-		}
+		require.NoError(t, err)
+		assert.Equal(t, expectedClient, client)
 	})
 }
 
 func TestGetClient(t *testing.T) {
-	/*
-		getClient() reads credentials directly from the system keychain.
-
-		TESTABILITY LIMITATION:
-		This function instantiates KeychainStore internally:
-		    store, err := secrets.NewKeychainStore()
-
-		Full testing would require one of:
-		1. Injecting the Store via package-level variable
-		2. Refactoring to accept Store as parameter
-		3. Using build tags for test implementations
-
-		Current tests verify error paths that don't require mocking.
-	*/
+	oldStoreFactory := newKeychainStore
+	defer func() { newKeychainStore = oldStoreFactory }()
 
 	t.Run("returns error when not authenticated", func(t *testing.T) {
-		// This test may succeed or fail depending on keychain state
-		// On a clean system with no credentials, it should return auth error
+		mockStore := secrets.NewMockStore()
+		newKeychainStore = func() (secrets.Store, error) { return mockStore, nil }
+
 		client, err := getClient()
 
-		if err != nil {
-			errMsg := err.Error()
-			// On Linux CI, keyring initialization may fail with a different error
-			// Skip the "not authenticated" assertion for keyring errors
-			if isKeyringError(errMsg) {
-				// Keyring errors are expected on Linux CI without keyring configured
-				// Just verify we got an error, don't check the message
-				assert.Error(t, err)
-			} else if errors.Is(err, secrets.ErrNotFound) || containsAuthError(err) {
-				// Verify the error message is user-friendly
-				assert.Contains(t, err.Error(), "not authenticated")
-			}
-		} else {
-			// Credentials exist in keychain - test passes
-			assert.NotNil(t, client)
-		}
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "not authenticated")
+		assert.Nil(t, client)
 	})
-}
 
-func containsAuthError(err error) bool {
-	return err != nil && (errors.Is(err, secrets.ErrNotFound) ||
-		err.Error() == "not authenticated - run 'deputy auth add' first")
-}
+	t.Run("returns error when store init fails", func(t *testing.T) {
+		expectedErr := errors.New("store init failed")
+		newKeychainStore = func() (secrets.Store, error) { return nil, expectedErr }
 
-// isKeyringError checks if the error message indicates a keyring initialization failure
-func isKeyringError(errMsg string) bool {
-	keyringErrors := []string{
-		"No directory provided for file keyring",
-		"keyring",
-		"keychain",
-		"secret service",
-		"dbus",
-	}
-	for _, substr := range keyringErrors {
-		if strings.Contains(strings.ToLower(errMsg), strings.ToLower(substr)) {
-			return true
-		}
-	}
-	return false
+		client, err := getClient()
+
+		require.Error(t, err)
+		assert.Equal(t, expectedErr, err)
+		assert.Nil(t, client)
+	})
+
+	t.Run("returns client when credentials exist", func(t *testing.T) {
+		mockStore := secrets.NewMockStore()
+		_ = mockStore.Set(&secrets.Credentials{
+			Token:   "test-token",
+			Install: "test",
+			Geo:     "au",
+		})
+		newKeychainStore = func() (secrets.Store, error) { return mockStore, nil }
+
+		client, err := getClient()
+
+		require.NoError(t, err)
+		assert.NotNil(t, client)
+	})
 }
 
 func TestDefaultClientFactory_NewClient(t *testing.T) {
 	t.Run("delegates to getClient", func(t *testing.T) {
+		oldStoreFactory := newKeychainStore
+		defer func() { newKeychainStore = oldStoreFactory }()
+
+		mockStore := secrets.NewMockStore()
+		_ = mockStore.Set(&secrets.Credentials{
+			Token:   "test-token",
+			Install: "test",
+			Geo:     "au",
+		})
+		newKeychainStore = func() (secrets.Store, error) { return mockStore, nil }
+
 		factory := DefaultClientFactory{}
 		ctx := context.Background()
 
-		// This will call getClient() internally
 		client, err := factory.NewClient(ctx)
 
-		// Result depends on keychain state
-		if err != nil {
-			errMsg := err.Error()
-			// Skip the "not authenticated" assertion for keyring errors
-			if isKeyringError(errMsg) {
-				assert.Error(t, err)
-			} else if containsAuthError(err) {
-				// Expected when no credentials
-				assert.Contains(t, err.Error(), "not authenticated")
-			}
-		} else {
-			assert.NotNil(t, client)
-		}
+		require.NoError(t, err)
+		assert.NotNil(t, client)
 	})
 }
 

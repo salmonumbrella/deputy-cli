@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"bytes"
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -229,6 +230,42 @@ func TestExecute(t *testing.T) {
 		fn := Execute
 		assert.NotNil(t, fn)
 	})
+}
+
+func TestExecute_UsesArgs(t *testing.T) {
+	oldArgs := os.Args
+	oldFlags := flags
+	defer func() {
+		os.Args = oldArgs
+		flags = oldFlags
+	}()
+
+	os.Args = []string{"deputy", "version"}
+	err := Execute()
+	require.NoError(t, err)
+}
+
+func TestExecute_UnknownCommand(t *testing.T) {
+	oldArgs := os.Args
+	oldFlags := flags
+	defer func() {
+		os.Args = oldArgs
+		flags = oldFlags
+	}()
+
+	os.Args = []string{"deputy", "not-a-command"}
+	err := Execute()
+	require.Error(t, err)
+}
+
+func TestIsDebug(t *testing.T) {
+	oldFlags := flags
+	defer func() { flags = oldFlags }()
+
+	flags.Debug = true
+	assert.True(t, IsDebug())
+	flags.Debug = false
+	assert.False(t, IsDebug())
 }
 
 func TestRootCmd_HelpForSubcommands(t *testing.T) {

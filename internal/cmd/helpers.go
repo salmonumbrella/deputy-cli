@@ -63,8 +63,10 @@ func ClientFactoryFromContext(ctx context.Context) ClientFactory {
 	if factory, ok := ctx.Value(clientFactoryKey{}).(ClientFactory); ok {
 		return factory
 	}
-	return DefaultClientFactory{}
+	return defaultClientFactory
 }
+
+var defaultClientFactory ClientFactory = DefaultClientFactory{}
 
 // getClientFromContext retrieves an API client using the factory from context
 func getClientFromContext(ctx context.Context) (*api.Client, error) {
@@ -78,7 +80,7 @@ func getClientFromContext(ctx context.Context) (*api.Client, error) {
 }
 
 func getClient() (*api.Client, error) {
-	store, err := secrets.NewKeychainStore()
+	store, err := newKeychainStore()
 	if err != nil {
 		return nil, err
 	}
@@ -92,6 +94,10 @@ func getClient() (*api.Client, error) {
 	}
 
 	return api.NewClient(creds), nil
+}
+
+var newKeychainStore = func() (secrets.Store, error) {
+	return secrets.NewKeychainStore()
 }
 
 // confirmDestructive prompts the user for confirmation before a destructive operation.

@@ -13,6 +13,7 @@ import (
 
 	"github.com/salmonumbrella/deputy-cli/internal/api"
 	"github.com/salmonumbrella/deputy-cli/internal/iocontext"
+	"github.com/salmonumbrella/deputy-cli/internal/outfmt"
 	"github.com/salmonumbrella/deputy-cli/internal/secrets"
 )
 
@@ -405,6 +406,60 @@ func TestLeaveCommand_WithMockClient(t *testing.T) {
 		assert.Contains(t, output, "Awaiting")
 	})
 
+	t.Run("list with employee filter uses query", func(t *testing.T) {
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			assert.Equal(t, http.MethodPost, r.Method)
+			assert.Equal(t, "/api/v1/resource/Leave/QUERY", r.URL.Path)
+			w.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(w).Encode([]api.Leave{
+				{Id: 3, Employee: 99, DateStart: "2024-03-01", DateEnd: "2024-03-02", Days: 1.0, Status: 1},
+			})
+		}))
+		defer server.Close()
+
+		client := newLeaveTestClient(server.URL, "test-token")
+		mockFactory := &MockClientFactory{client: client}
+
+		buf := &bytes.Buffer{}
+		ctx := WithClientFactory(context.Background(), mockFactory)
+		ctx = iocontext.WithIO(ctx, &iocontext.IO{Out: buf, ErrOut: buf})
+
+		cmd := newLeaveListCmd()
+		cmd.SetContext(ctx)
+		cmd.SetOut(buf)
+		cmd.SetArgs([]string{"--employee", "99"})
+		err := cmd.Execute()
+
+		require.NoError(t, err)
+		assert.Contains(t, buf.String(), "2024-03-01")
+	})
+
+	t.Run("list returns json output", func(t *testing.T) {
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(w).Encode([]api.Leave{
+				{Id: 4, Employee: 10, DateStart: "2024-04-01", DateEnd: "2024-04-02", Days: 1.0, Status: 1},
+			})
+		}))
+		defer server.Close()
+
+		client := newLeaveTestClient(server.URL, "test-token")
+		mockFactory := &MockClientFactory{client: client}
+
+		buf := &bytes.Buffer{}
+		ctx := WithClientFactory(context.Background(), mockFactory)
+		ctx = iocontext.WithIO(ctx, &iocontext.IO{Out: buf, ErrOut: buf})
+		ctx = outfmt.WithFormat(ctx, "json")
+
+		cmd := newLeaveListCmd()
+		cmd.SetContext(ctx)
+		cmd.SetOut(buf)
+		err := cmd.Execute()
+
+		require.NoError(t, err)
+		assert.Contains(t, buf.String(), `"Id": 4`)
+	})
+
 	t.Run("get returns leave details", func(t *testing.T) {
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Content-Type", "application/json")
@@ -475,6 +530,40 @@ func TestLeaveCommand_WithMockClient(t *testing.T) {
 
 		require.NoError(t, err)
 		assert.Contains(t, buf.String(), "Created leave request 999")
+	})
+
+	t.Run("add returns json output", func(t *testing.T) {
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(w).Encode(api.Leave{
+				Id:        1001,
+				Employee:  123,
+				DateStart: "2024-01-15",
+				DateEnd:   "2024-01-16",
+			})
+		}))
+		defer server.Close()
+
+		client := newLeaveTestClient(server.URL, "test-token")
+		mockFactory := &MockClientFactory{client: client}
+
+		buf := &bytes.Buffer{}
+		ctx := WithClientFactory(context.Background(), mockFactory)
+		ctx = iocontext.WithIO(ctx, &iocontext.IO{Out: buf, ErrOut: buf})
+		ctx = outfmt.WithFormat(ctx, "json")
+
+		cmd := newLeaveAddCmd()
+		cmd.SetContext(ctx)
+		cmd.SetOut(buf)
+		cmd.SetArgs([]string{
+			"--employee", "123",
+			"--start-date", "2024-01-15",
+			"--end-date", "2024-01-16",
+		})
+		err := cmd.Execute()
+
+		require.NoError(t, err)
+		assert.Contains(t, buf.String(), `"Id": 1001`)
 	})
 
 	t.Run("approve approves leave request", func(t *testing.T) {

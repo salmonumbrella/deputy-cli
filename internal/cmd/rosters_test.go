@@ -276,6 +276,20 @@ func TestRostersCopyCommand_RequiresDateFlags(t *testing.T) {
 	assert.Contains(t, err.Error(), "--from-date and --to-date are required")
 }
 
+func TestRostersCopyCommand_InvalidDate(t *testing.T) {
+	buf := &bytes.Buffer{}
+	ctx := iocontext.WithIO(context.Background(), &iocontext.IO{Out: buf, ErrOut: buf})
+
+	cmd := newRostersCopyCmd()
+	cmd.SetContext(ctx)
+	cmd.SetOut(buf)
+	cmd.SetArgs([]string{"--from-date", "invalid", "--to-date", "2024-01-08", "--location", "1"})
+	err := cmd.Execute()
+
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "invalid date format")
+}
+
 // TestRostersCopyCommand_RequiresLocationFlag tests that copy requires --location.
 // This validation happens BEFORE getClient(), so we can test it!
 func TestRostersCopyCommand_RequiresLocationFlag(t *testing.T) {
@@ -324,6 +338,20 @@ func TestRostersPublishCommand_RequiresDateFlags(t *testing.T) {
 	assert.Contains(t, err.Error(), "--from-date and --to-date are required")
 }
 
+func TestRostersPublishCommand_InvalidDate(t *testing.T) {
+	buf := &bytes.Buffer{}
+	ctx := iocontext.WithIO(context.Background(), &iocontext.IO{Out: buf, ErrOut: buf})
+
+	cmd := newRostersPublishCmd()
+	cmd.SetContext(ctx)
+	cmd.SetOut(buf)
+	cmd.SetArgs([]string{"--from-date", "2024-01-01", "--to-date", "invalid", "--location", "1"})
+	err := cmd.Execute()
+
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "invalid date format")
+}
+
 // TestRostersPublishCommand_RequiresLocationFlag tests that publish requires --location.
 // This validation happens BEFORE getClient(), so we can test it!
 func TestRostersPublishCommand_RequiresLocationFlag(t *testing.T) {
@@ -370,6 +398,20 @@ func TestRostersDiscardCommand_RequiresDateFlags(t *testing.T) {
 
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "--from-date and --to-date are required")
+}
+
+func TestRostersDiscardCommand_InvalidDate(t *testing.T) {
+	buf := &bytes.Buffer{}
+	ctx := iocontext.WithIO(context.Background(), &iocontext.IO{Out: buf, ErrOut: buf})
+
+	cmd := newRostersDiscardCmd()
+	cmd.SetContext(ctx)
+	cmd.SetOut(buf)
+	cmd.SetArgs([]string{"--from-date", "invalid", "--to-date", "2024-01-08", "--location", "1"})
+	err := cmd.Execute()
+
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "invalid date format")
 }
 
 // TestRostersDiscardCommand_RequiresLocationFlag tests that discard requires --location.

@@ -36,6 +36,46 @@ func getStore(ctx context.Context) (secrets.Store, error) {
 	return secrets.NewKeychainStore()
 }
 
+type setupServer interface {
+	Start(ctx context.Context) (*auth.SetupResult, error)
+}
+
+type setupServerFactory func(store secrets.Store) (setupServer, error)
+
+type setupServerFactoryKey struct{}
+
+// WithSetupServerFactory injects a setup server factory into context for testing
+func WithSetupServerFactory(ctx context.Context, factory setupServerFactory) context.Context {
+	return context.WithValue(ctx, setupServerFactoryKey{}, factory)
+}
+
+func setupServerFactoryFromContext(ctx context.Context) setupServerFactory {
+	if factory, ok := ctx.Value(setupServerFactoryKey{}).(setupServerFactory); ok && factory != nil {
+		return factory
+	}
+	return func(store secrets.Store) (setupServer, error) {
+		return auth.NewSetupServer(store)
+	}
+}
+
+type authClientFactory func(creds *secrets.Credentials) (*api.Client, error)
+
+type authClientFactoryKey struct{}
+
+// WithAuthClientFactory injects an auth client factory into context for testing
+func WithAuthClientFactory(ctx context.Context, factory authClientFactory) context.Context {
+	return context.WithValue(ctx, authClientFactoryKey{}, factory)
+}
+
+func authClientFactoryFromContext(ctx context.Context) authClientFactory {
+	if factory, ok := ctx.Value(authClientFactoryKey{}).(authClientFactory); ok && factory != nil {
+		return factory
+	}
+	return func(creds *secrets.Credentials) (*api.Client, error) {
+		return api.NewClient(creds), nil
+	}
+}
+
 func newAuthCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "auth",
@@ -63,7 +103,8 @@ func newAuthLoginCmd() *cobra.Command {
 				return fmt.Errorf("failed to open keychain: %w", err)
 			}
 
-			server, err := auth.NewSetupServer(store)
+			factory := setupServerFactoryFromContext(cmd.Context())
+			server, err := factory(store)
 			if err != nil {
 				return fmt.Errorf("failed to start auth server: %w", err)
 			}
@@ -258,7 +299,11 @@ func newAuthTestCmd() *cobra.Command {
 				return err
 			}
 
-			client := api.NewClient(creds)
+			factory := authClientFactoryFromContext(cmd.Context())
+			client, err := factory(creds)
+			if err != nil {
+				return err
+			}
 			me, err := client.Me().Info(cmd.Context())
 			if err != nil {
 				return fmt.Errorf("authentication failed: %w", err)

@@ -495,4 +495,20 @@ func TestWebhooksCommand_WithMockClient(t *testing.T) {
 		require.NoError(t, err)
 		assert.Contains(t, buf.String(), "Deleted webhook 123")
 	})
+
+	t.Run("delete cancelled without confirmation", func(t *testing.T) {
+		inBuf := bytes.NewBufferString("n\n")
+		outBuf := &bytes.Buffer{}
+		ctx := context.Background()
+		ctx = iocontext.WithIO(ctx, &iocontext.IO{In: inBuf, Out: outBuf, ErrOut: outBuf})
+
+		cmd := newWebhooksDeleteCmd()
+		cmd.SetContext(ctx)
+		cmd.SetOut(outBuf)
+		cmd.SetArgs([]string{"123"})
+		err := cmd.Execute()
+
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "operation cancelled")
+	})
 }

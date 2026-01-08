@@ -158,6 +158,7 @@ type SetupServer struct {
 	csrfToken     string
 	store         secrets.Store
 	limiter       *rateLimiter
+	validateFn    func(ctx context.Context, install, geo, token string) error
 }
 
 // NewSetupServer creates a new setup server
@@ -179,6 +180,18 @@ func NewSetupServer(store secrets.Store) (*SetupServer, error) {
 		store:       store,
 		limiter:     limiter,
 	}, nil
+}
+
+// SetValidator overrides the default credential validation behavior (useful for tests).
+func (s *SetupServer) SetValidator(fn func(ctx context.Context, install, geo, token string) error) {
+	s.validateFn = fn
+}
+
+func (s *SetupServer) validate(ctx context.Context, install, geo, token string) error {
+	if s.validateFn != nil {
+		return s.validateFn(ctx, install, geo, token)
+	}
+	return s.validateCredentials(ctx, install, geo, token)
 }
 
 // Start starts the setup server and opens the browser
@@ -211,7 +224,7 @@ func (s *SetupServer) Start(ctx context.Context) (*SetupResult, error) {
 	}()
 
 	go func() {
-		if err := openBrowser(baseURL); err != nil {
+		if err := openBrowserFunc(baseURL); err != nil {
 			slog.Info("failed to open browser, navigate manually", "url", baseURL)
 		}
 	}()
@@ -274,7 +287,7 @@ func (s *SetupServer) validateCredentials(ctx context.Context, install, geo, tok
 		Geo:     geo,
 	}
 
-	client := api.NewClient(creds)
+	client := newAPIClient(creds)
 	if _, err := client.Me().Info(ctx); err != nil {
 		return fmt.Errorf("authentication failed: %v", err)
 	}
@@ -343,7 +356,7 @@ func (s *SetupServer) handleValidate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := s.validateCredentials(r.Context(), req.Install, req.Geo, req.Token); err != nil {
+	if err := s.validate(r.Context(), req.Install, req.Geo, req.Token); err != nil {
 		writeJSON(w, http.StatusOK, map[string]any{
 			"success": false,
 			"error":   err.Error(),
@@ -418,7 +431,7 @@ func (s *SetupServer) handleSubmit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := s.validateCredentials(r.Context(), req.Install, req.Geo, req.Token); err != nil {
+	if err := s.validate(r.Context(), req.Install, req.Geo, req.Token); err != nil {
 		writeJSON(w, http.StatusOK, map[string]any{
 			"success": false,
 			"error":   err.Error(),
@@ -517,19 +530,25 @@ func writeJSON(w http.ResponseWriter, status int, data any) {
 	}
 }
 
-func openBrowser(url string) error {
-	var cmd *exec.Cmd
+var openBrowserFunc = openBrowser
 
-	switch runtime.GOOS {
+var goos = runtime.GOOS
+
+var newAPIClient = api.NewClient
+
+var startCommand = func(name string, args ...string) error {
+	return exec.Command(name, args...).Start()
+}
+
+func openBrowser(url string) error {
+	switch goos {
 	case "darwin":
-		cmd = exec.Command("open", url)
+		return startCommand("open", url)
 	case "linux":
-		cmd = exec.Command("xdg-open", url)
+		return startCommand("xdg-open", url)
 	case "windows":
-		cmd = exec.Command("rundll32", "url.dll,FileProtocolHandler", url)
+		return startCommand("rundll32", "url.dll,FileProtocolHandler", url)
 	default:
 		return fmt.Errorf("unsupported platform")
 	}
-
-	return cmd.Start()
 }

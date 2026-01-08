@@ -140,12 +140,12 @@ type PayRule struct {
 
 // TimesheetPayReturn links a pay rule to a timesheet
 type TimesheetPayReturn struct {
-	Id        int     `json:"Id"`
-	Timesheet int     `json:"Timesheet"`
-	PayRule   int     `json:"PayRule"`
-	Value     float64 `json:"Value"`
-	Cost      float64 `json:"Cost"`
-	Overridden bool   `json:"Overridden"`
+	Id         int     `json:"Id"`
+	Timesheet  int     `json:"Timesheet"`
+	PayRule    int     `json:"PayRule"`
+	Value      float64 `json:"Value"`
+	Cost       float64 `json:"Cost"`
+	Overridden bool    `json:"Overridden"`
 }
 
 // ListPayRules returns all pay rules, optionally filtered by hourly rate

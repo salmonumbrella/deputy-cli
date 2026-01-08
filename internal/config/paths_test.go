@@ -31,3 +31,16 @@ func TestConfigDir_EnvOverride(t *testing.T) {
 func TestKeychainService(t *testing.T) {
 	assert.Equal(t, "deputy-cli", KeychainService)
 }
+
+func TestEnsureConfigDir(t *testing.T) {
+	tmpDir := t.TempDir()
+	customDir := filepath.Join(tmpDir, "deputy-config")
+	t.Setenv("DEPUTY_CONFIG_DIR", customDir)
+
+	err := EnsureConfigDir()
+
+	assert.NoError(t, err)
+	info, statErr := os.Stat(customDir)
+	assert.NoError(t, statErr)
+	assert.True(t, info.IsDir())
+}

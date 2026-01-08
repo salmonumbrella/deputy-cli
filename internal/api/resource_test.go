@@ -98,6 +98,14 @@ func TestResourceService_Info_Unauthorized(t *testing.T) {
 	assert.Contains(t, err.Error(), "API error 401")
 }
 
+func TestResourceInfo_HasAssocs_NilOrInvalid(t *testing.T) {
+	info := &ResourceInfo{}
+	assert.False(t, info.HasAssocs())
+
+	info.Assocs = "not-a-map-or-array"
+	assert.False(t, info.HasAssocs())
+}
+
 func TestResourceService_Info_NotFound(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)

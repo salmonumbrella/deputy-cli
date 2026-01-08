@@ -82,6 +82,30 @@ func TestDepartmentsService_List_Empty(t *testing.T) {
 	assert.Empty(t, departments)
 }
 
+func TestDepartmentsService_List_WithPagination(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodPost, r.Method)
+		assert.Equal(t, "/api/v1/resource/OperationalUnit/QUERY", r.URL.Path)
+
+		body, err := io.ReadAll(r.Body)
+		require.NoError(t, err)
+		assert.Contains(t, string(body), `"max":5`)
+		assert.Contains(t, string(body), `"start":10`)
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode([]Department{
+			{Id: 1, CompanyName: "Engineering"},
+		})
+	}))
+	defer server.Close()
+
+	client := newTestClient(server.URL, "test-token")
+	departments, err := client.Departments().List(context.Background(), &ListOptions{Limit: 5, Offset: 10})
+	require.NoError(t, err)
+	require.Len(t, departments, 1)
+	assert.Equal(t, 1, departments[0].Id)
+}
+
 func TestDepartmentsService_List_Error(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusUnauthorized)

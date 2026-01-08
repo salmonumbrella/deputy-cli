@@ -158,3 +158,14 @@ func TestKeychainStore_DeleteNonExistent(t *testing.T) {
 	err := store.Delete()
 	assert.Error(t, err)
 }
+
+func TestNewKeychainStore_CanInitOrError(t *testing.T) {
+	store, err := NewKeychainStore()
+	if err != nil {
+		t.Logf("NewKeychainStore returned error (acceptable in test env): %v", err)
+		return
+	}
+	if store == nil {
+		t.Fatal("expected store, got nil")
+	}
+}
