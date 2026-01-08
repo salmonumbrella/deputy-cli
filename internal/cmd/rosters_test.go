@@ -13,7 +13,6 @@ import (
 
 	"github.com/salmonumbrella/deputy-cli/internal/api"
 	"github.com/salmonumbrella/deputy-cli/internal/iocontext"
-	"github.com/salmonumbrella/deputy-cli/internal/secrets"
 )
 
 /*
@@ -508,45 +507,6 @@ func TestRostersCreateCommand_AcceptsOptionalFlags(t *testing.T) {
 	// assert.True(t, input.Publish)
 }
 
-// rostersTestServerTransport redirects all requests to the test server
-type rostersTestServerTransport struct {
-	testServerURL string
-	underlying    http.RoundTripper
-}
-
-func (t *rostersTestServerTransport) RoundTrip(req *http.Request) (*http.Response, error) {
-	// Replace the URL with test server URL, keeping the path and query string
-	testURL := t.testServerURL + req.URL.Path
-	if req.URL.RawQuery != "" {
-		testURL += "?" + req.URL.RawQuery
-	}
-	newReq, err := http.NewRequestWithContext(req.Context(), req.Method, testURL, req.Body)
-	if err != nil {
-		return nil, err
-	}
-	// Copy headers
-	newReq.Header = req.Header
-	return t.underlying.RoundTrip(newReq)
-}
-
-// newRostersTestClient creates a client configured to use a test server
-func newRostersTestClient(serverURL, token string) *api.Client {
-	creds := &secrets.Credentials{
-		Token:   token,
-		Install: "test",
-		Geo:     "au",
-	}
-	client := api.NewClient(creds)
-	// Replace the HTTP client's transport to redirect to test server
-	client.SetHTTPClient(&http.Client{
-		Transport: &rostersTestServerTransport{
-			testServerURL: serverURL,
-			underlying:    http.DefaultTransport,
-		},
-	})
-	return client
-}
-
 // TestRostersCommand_WithMockClient tests command output using mock HTTP server.
 func TestRostersCommand_WithMockClient(t *testing.T) {
 	t.Run("list returns rosters table", func(t *testing.T) {
@@ -561,7 +521,7 @@ func TestRostersCommand_WithMockClient(t *testing.T) {
 		defer server.Close()
 
 		// Create client and factory
-		client := newRostersTestClient(server.URL, "test-token")
+		client := newTestClient(server.URL, "test-token")
 		mockFactory := &MockClientFactory{client: client}
 
 		// Set up context with factory and IO

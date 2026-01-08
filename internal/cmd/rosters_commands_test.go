@@ -30,7 +30,7 @@ func TestRostersGetCommand_WithMockClient(t *testing.T) {
 	}))
 	defer server.Close()
 
-	client := newRostersTestClient(server.URL, "test-token")
+	client := newTestClient(server.URL, "test-token")
 	mockFactory := &MockClientFactory{client: client}
 
 	buf := &bytes.Buffer{}
@@ -60,7 +60,7 @@ func TestRostersSwapCommand_WithMockClient(t *testing.T) {
 		}))
 		defer server.Close()
 
-		client := newRostersTestClient(server.URL, "test-token")
+		client := newTestClient(server.URL, "test-token")
 		mockFactory := &MockClientFactory{client: client}
 
 		buf := &bytes.Buffer{}
@@ -85,7 +85,7 @@ func TestRostersSwapCommand_WithMockClient(t *testing.T) {
 		}))
 		defer server.Close()
 
-		client := newRostersTestClient(server.URL, "test-token")
+		client := newTestClient(server.URL, "test-token")
 		mockFactory := &MockClientFactory{client: client}
 
 		buf := &bytes.Buffer{}
@@ -114,7 +114,7 @@ func TestRostersCreateCopyPublishDiscardCommands_WithMockClient(t *testing.T) {
 		}))
 		defer server.Close()
 
-		client := newRostersTestClient(server.URL, "test-token")
+		client := newTestClient(server.URL, "test-token")
 		mockFactory := &MockClientFactory{client: client}
 
 		buf := &bytes.Buffer{}
@@ -139,7 +139,7 @@ func TestRostersCreateCopyPublishDiscardCommands_WithMockClient(t *testing.T) {
 		}))
 		defer server.Close()
 
-		client := newRostersTestClient(server.URL, "test-token")
+		client := newTestClient(server.URL, "test-token")
 		mockFactory := &MockClientFactory{client: client}
 
 		buf := &bytes.Buffer{}
@@ -164,7 +164,7 @@ func TestRostersCreateCopyPublishDiscardCommands_WithMockClient(t *testing.T) {
 		}))
 		defer server.Close()
 
-		client := newRostersTestClient(server.URL, "test-token")
+		client := newTestClient(server.URL, "test-token")
 		mockFactory := &MockClientFactory{client: client}
 
 		buf := &bytes.Buffer{}
@@ -189,7 +189,7 @@ func TestRostersCreateCopyPublishDiscardCommands_WithMockClient(t *testing.T) {
 		}))
 		defer server.Close()
 
-		client := newRostersTestClient(server.URL, "test-token")
+		client := newTestClient(server.URL, "test-token")
 		mockFactory := &MockClientFactory{client: client}
 
 		buf := &bytes.Buffer{}
