@@ -14,7 +14,6 @@ import (
 	"github.com/salmonumbrella/deputy-cli/internal/api"
 	"github.com/salmonumbrella/deputy-cli/internal/iocontext"
 	"github.com/salmonumbrella/deputy-cli/internal/outfmt"
-	"github.com/salmonumbrella/deputy-cli/internal/secrets"
 )
 
 /*
@@ -525,45 +524,6 @@ func TestEmployeesAddUnavailabilityCommand_RequiresIDArgument(t *testing.T) {
 
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "accepts 1 arg(s)")
-}
-
-// testServerTransport redirects all requests to a test server
-type testServerTransport struct {
-	testServerURL string
-	underlying    http.RoundTripper
-}
-
-func (t *testServerTransport) RoundTrip(req *http.Request) (*http.Response, error) {
-	// Replace the URL with test server URL, keeping the path and query string
-	testURL := t.testServerURL + req.URL.Path
-	if req.URL.RawQuery != "" {
-		testURL += "?" + req.URL.RawQuery
-	}
-	newReq, err := http.NewRequestWithContext(req.Context(), req.Method, testURL, req.Body)
-	if err != nil {
-		return nil, err
-	}
-	// Copy headers
-	newReq.Header = req.Header
-	return t.underlying.RoundTrip(newReq)
-}
-
-// newTestClient creates a client configured to use a test server
-func newTestClient(serverURL, token string) *api.Client {
-	creds := &secrets.Credentials{
-		Token:   token,
-		Install: "test",
-		Geo:     "au",
-	}
-	client := api.NewClient(creds)
-	// Replace the HTTP client's transport to redirect to test server
-	client.SetHTTPClient(&http.Client{
-		Transport: &testServerTransport{
-			testServerURL: serverURL,
-			underlying:    http.DefaultTransport,
-		},
-	})
-	return client
 }
 
 // TestEmployeesCommand_WithMockClient tests command output using mock HTTP server.
