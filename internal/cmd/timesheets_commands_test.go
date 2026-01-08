@@ -442,8 +442,14 @@ func TestTimesheetsClockInOutCommands_WithMockClient(t *testing.T) {
 }
 
 func TestTimesheetsListCommand_InvalidRanges(t *testing.T) {
+	// Use mock client factory to avoid keychain access in CI
+	// The validation happens after getClientFromContext, so we need a valid client
+	client := newTestClient("http://localhost", "test-token")
+	mockFactory := &MockClientFactory{client: client}
+
 	buf := &bytes.Buffer{}
-	ctx := iocontext.WithIO(context.Background(), &iocontext.IO{Out: buf, ErrOut: buf})
+	ctx := WithClientFactory(context.Background(), mockFactory)
+	ctx = iocontext.WithIO(ctx, &iocontext.IO{Out: buf, ErrOut: buf})
 
 	cmd := newTimesheetsListCmd()
 	cmd.SetContext(ctx)
