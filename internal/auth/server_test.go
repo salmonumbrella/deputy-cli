@@ -1311,6 +1311,26 @@ func TestNewSetupServer(t *testing.T) {
 }
 
 func TestSetupServer_Start_CompleteFlow(t *testing.T) {
+	// Track when browser func is called to ensure goroutine completes
+	browserCalled := make(chan struct{})
+	urlCh := make(chan string, 1)
+
+	// Set up mock BEFORE any server operations to avoid race
+	origOpen := openBrowserFunc
+	openBrowserFunc = func(url string) error {
+		urlCh <- url
+		close(browserCalled)
+		return nil
+	}
+	t.Cleanup(func() {
+		// Wait for browser goroutine to complete before restoring
+		select {
+		case <-browserCalled:
+		case <-time.After(100 * time.Millisecond):
+		}
+		openBrowserFunc = origOpen
+	})
+
 	store := secrets.NewMockStore()
 	server, err := NewSetupServer(store)
 	if err != nil {
@@ -1319,14 +1339,6 @@ func TestSetupServer_Start_CompleteFlow(t *testing.T) {
 	server.SetValidator(func(ctx context.Context, install, geo, token string) error {
 		return nil
 	})
-
-	urlCh := make(chan string, 1)
-	origOpen := openBrowserFunc
-	openBrowserFunc = func(url string) error {
-		urlCh <- url
-		return nil
-	}
-	defer func() { openBrowserFunc = origOpen }()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
@@ -1440,6 +1452,24 @@ func TestOpenBrowser_UsesStartCommand(t *testing.T) {
 }
 
 func TestSetupServer_Start_ContextCanceled(t *testing.T) {
+	// Track when browser func is called to ensure goroutine completes
+	browserCalled := make(chan struct{})
+
+	// Set up mock BEFORE any server operations to avoid race
+	origOpen := openBrowserFunc
+	openBrowserFunc = func(url string) error {
+		close(browserCalled)
+		return nil
+	}
+	t.Cleanup(func() {
+		// Wait for browser goroutine to complete before restoring
+		select {
+		case <-browserCalled:
+		case <-time.After(100 * time.Millisecond):
+		}
+		openBrowserFunc = origOpen
+	})
+
 	store := secrets.NewMockStore()
 	server, err := NewSetupServer(store)
 	if err != nil {
@@ -1448,10 +1478,6 @@ func TestSetupServer_Start_ContextCanceled(t *testing.T) {
 	server.SetValidator(func(ctx context.Context, install, geo, token string) error {
 		return nil
 	})
-
-	origOpen := openBrowserFunc
-	openBrowserFunc = func(url string) error { return nil }
-	defer func() { openBrowserFunc = origOpen }()
 
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
@@ -1463,6 +1489,24 @@ func TestSetupServer_Start_ContextCanceled(t *testing.T) {
 }
 
 func TestSetupServer_Start_ShutdownPendingResult(t *testing.T) {
+	// Track when browser func is called to ensure goroutine completes
+	browserCalled := make(chan struct{})
+
+	// Set up mock BEFORE any server operations to avoid race
+	origOpen := openBrowserFunc
+	openBrowserFunc = func(url string) error {
+		close(browserCalled)
+		return nil
+	}
+	t.Cleanup(func() {
+		// Wait for browser goroutine to complete before restoring
+		select {
+		case <-browserCalled:
+		case <-time.After(100 * time.Millisecond):
+		}
+		openBrowserFunc = origOpen
+	})
+
 	store := secrets.NewMockStore()
 	server, err := NewSetupServer(store)
 	if err != nil {
@@ -1471,10 +1515,6 @@ func TestSetupServer_Start_ShutdownPendingResult(t *testing.T) {
 	server.SetValidator(func(ctx context.Context, install, geo, token string) error {
 		return nil
 	})
-
-	origOpen := openBrowserFunc
-	openBrowserFunc = func(url string) error { return nil }
-	defer func() { openBrowserFunc = origOpen }()
 
 	resultCh := make(chan *SetupResult, 1)
 	errCh := make(chan error, 1)
@@ -1489,6 +1529,12 @@ func TestSetupServer_Start_ShutdownPendingResult(t *testing.T) {
 		}
 		resultCh <- res
 	}()
+
+	// Wait for browser goroutine to have read openBrowserFunc before triggering shutdown
+	select {
+	case <-browserCalled:
+	case <-time.After(100 * time.Millisecond):
+	}
 
 	server.pendingMu.Lock()
 	server.pendingResult = &SetupResult{Install: "acme", Geo: "uk"}
