@@ -89,3 +89,13 @@ func Execute() error {
 func IsDebug() bool {
 	return flags.Debug
 }
+
+// IsJSONOutput returns true if the output format is JSON.
+func IsJSONOutput() bool {
+	return strings.ToLower(flags.Output) == "json" || flags.Raw
+}
+
+// SetOutputForTest allows tests to override the output format.
+func SetOutputForTest(format string) {
+	flags.Output = format
+}
