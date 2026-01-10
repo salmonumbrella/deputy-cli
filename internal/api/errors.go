@@ -33,8 +33,12 @@ const (
 
 // APIError represents an error response from the Deputy API.
 type APIError struct {
-	StatusCode int
-	Message    string
+	Code       string `json:"code"`
+	StatusCode int    `json:"status"`
+	Message    string `json:"message"`
+	Retryable  bool   `json:"retryable"`
+	RetryAfter int    `json:"retryAfter,omitempty"`
+	Field      string `json:"field,omitempty"`
 }
 
 func (e *APIError) Error() string {
@@ -58,4 +62,32 @@ func IsNotFound(err error) bool {
 // IsForbidden checks for HTTP 403 API errors.
 func IsForbidden(err error) bool {
 	return IsStatus(err, http.StatusForbidden)
+}
+
+// CodeFromStatus returns the error code for an HTTP status code.
+func CodeFromStatus(status int) string {
+	switch status {
+	case 401:
+		return ErrCodeAuthRequired
+	case 403:
+		return ErrCodeAuthForbidden
+	case 404:
+		return ErrCodeNotFound
+	case 409:
+		return ErrCodeConflict
+	case 422:
+		return ErrCodeValidation
+	case 429:
+		return ErrCodeRateLimited
+	default:
+		if status >= 500 {
+			return ErrCodeServerError
+		}
+		return ErrCodeInvalidInput
+	}
+}
+
+// IsRetryable returns true if the status code indicates a retryable error.
+func IsRetryable(status int) bool {
+	return status == 429 || status >= 500
 }
