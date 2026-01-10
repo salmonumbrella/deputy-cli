@@ -73,6 +73,44 @@ Credentials are stored securely in your system's keychain:
 - **Linux**: Secret Service (GNOME Keyring, KWallet)
 - **Windows**: Credential Manager
 
+## Error Handling
+
+### Text Mode (default)
+
+Errors are printed to stderr with human-readable hints:
+
+```bash
+$ deputy employees get 999999
+Error: API error 404: not found
+Hint: Resource not found. Try 'deputy resource list' to verify names.
+```
+
+### JSON Mode
+
+When `--output json` is set, errors are structured JSON on stdout:
+
+```bash
+$ deputy employees get 999999 --output json
+{"error":{"code":"NOT_FOUND","status":404,"message":"not found","retryable":false,"hint":"Resource not found"}}
+$ echo $?
+1
+```
+
+Error codes for programmatic handling:
+
+| Code | Status | Retryable | Description |
+|------|--------|-----------|-------------|
+| `AUTH_REQUIRED` | 401 | No | Not authenticated |
+| `AUTH_FORBIDDEN` | 403 | No | No permission |
+| `NOT_FOUND` | 404 | No | Resource not found |
+| `CONFLICT` | 409 | No | Resource conflict |
+| `VALIDATION_FAILED` | 422 | No | Invalid input |
+| `RATE_LIMITED` | 429 | Yes | Too many requests |
+| `SERVER_ERROR` | 5xx | Yes | Server error |
+| `NETWORK_ERROR` | - | Yes | Connection failed |
+| `TIMEOUT` | - | Yes | Request timed out |
+| `INVALID_FLAG` | - | No | Bad CLI argument |
+
 ## Commands
 
 ### Authentication
