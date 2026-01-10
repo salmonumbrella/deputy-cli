@@ -42,6 +42,46 @@ func TestAgreementsService_ListByEmployee(t *testing.T) {
 	assert.Equal(t, 42, agreements[0].Employee)
 }
 
+func TestAgreementsService_ListByEmployee_ActiveOnly(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodPost, r.Method)
+		assert.Equal(t, "/api/v1/resource/EmployeeAgreement/QUERY", r.URL.Path)
+
+		body, err := io.ReadAll(r.Body)
+		require.NoError(t, err)
+
+		var payload map[string]interface{}
+		require.NoError(t, json.Unmarshal(body, &payload))
+		search := payload["search"].(map[string]interface{})
+
+		// Verify s1: Employee filter
+		s1 := search["s1"].(map[string]interface{})
+		assert.Equal(t, "Employee", s1["field"])
+		assert.Equal(t, "eq", s1["type"])
+		assert.Equal(t, float64(42), s1["data"])
+
+		// Verify s2: Active=true filter (only present when activeOnly=true)
+		s2, ok := search["s2"].(map[string]interface{})
+		require.True(t, ok, "s2 filter should be present when activeOnly=true")
+		assert.Equal(t, "Active", s2["field"])
+		assert.Equal(t, "eq", s2["type"])
+		assert.Equal(t, true, s2["data"])
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode([]EmployeeAgreement{{Id: 7, Employee: 42, Active: true}})
+	}))
+	defer server.Close()
+
+	client := newTestClient(server.URL, "test-token")
+
+	agreements, err := client.Agreements().ListByEmployee(context.Background(), 42, true)
+	require.NoError(t, err)
+	require.Len(t, agreements, 1)
+	assert.Equal(t, 7, agreements[0].Id)
+	assert.Equal(t, 42, agreements[0].Employee)
+	assert.True(t, agreements[0].Active)
+}
+
 func TestAgreementsService_Get(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, http.MethodGet, r.Method)
