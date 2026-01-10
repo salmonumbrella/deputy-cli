@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
@@ -244,6 +245,116 @@ func TestFormatAPIErrorNoSpecificHint(t *testing.T) {
 			}
 			if !strings.Contains(got, "Use --debug for details") {
 				t.Errorf("formatAPIError() should contain debug hint, got %q", got)
+			}
+		})
+	}
+}
+
+func TestFormatErrorJSON(t *testing.T) {
+	tests := []struct {
+		name       string
+		err        error
+		wantCode   string
+		wantStatus int
+		wantRetry  bool
+	}{
+		{
+			name:     "nil error returns empty",
+			err:      nil,
+			wantCode: "",
+		},
+		{
+			name:       "API error 401",
+			err:        &api.APIError{Code: api.ErrCodeAuthRequired, StatusCode: 401, Message: "unauthorized"},
+			wantCode:   "AUTH_REQUIRED",
+			wantStatus: 401,
+			wantRetry:  false,
+		},
+		{
+			name:       "API error 429 retryable",
+			err:        &api.APIError{Code: api.ErrCodeRateLimited, StatusCode: 429, Message: "too many requests", Retryable: true, RetryAfter: 30},
+			wantCode:   "RATE_LIMITED",
+			wantStatus: 429,
+			wantRetry:  true,
+		},
+		{
+			name:       "API error 500 retryable",
+			err:        &api.APIError{Code: api.ErrCodeServerError, StatusCode: 500, Message: "server error", Retryable: true},
+			wantCode:   "SERVER_ERROR",
+			wantStatus: 500,
+			wantRetry:  true,
+		},
+		{
+			name:      "generic error",
+			err:       errors.New("something went wrong"),
+			wantCode:  "INVALID_INPUT",
+			wantRetry: false,
+		},
+		{
+			name:      "network error",
+			err:       errors.New("connection refused"),
+			wantCode:  "NETWORK_ERROR",
+			wantRetry: true,
+		},
+		{
+			name:      "timeout error",
+			err:       errors.New("request timeout"),
+			wantCode:  "TIMEOUT",
+			wantRetry: true,
+		},
+		{
+			name:      "invalid flag error",
+			err:       errors.New("unknown flag: --foo"),
+			wantCode:  "INVALID_FLAG",
+			wantRetry: false,
+		},
+		{
+			name:       "wrapped API error",
+			err:        fmt.Errorf("request failed: %w", &api.APIError{Code: api.ErrCodeNotFound, StatusCode: 404, Message: "not found"}),
+			wantCode:   "NOT_FOUND",
+			wantStatus: 404,
+			wantRetry:  false,
+		},
+		{
+			name:      "jq query error",
+			err:       errors.New("invalid jq query: syntax error"),
+			wantCode:  "INVALID_INPUT",
+			wantRetry: false,
+		},
+		{
+			name:       "API error without code uses CodeFromStatus",
+			err:        &api.APIError{StatusCode: 403, Message: "forbidden"},
+			wantCode:   "AUTH_FORBIDDEN",
+			wantStatus: 403,
+			wantRetry:  false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := FormatErrorJSON(tt.err)
+
+			if tt.wantCode == "" {
+				if got != "" {
+					t.Errorf("FormatErrorJSON() = %q, want empty", got)
+				}
+				return
+			}
+
+			// Parse the JSON
+			var jsonErr JSONError
+			if err := json.Unmarshal([]byte(got), &jsonErr); err != nil {
+				t.Fatalf("FormatErrorJSON() returned invalid JSON: %v\nGot: %s", err, got)
+			}
+
+			if jsonErr.Error.Code != tt.wantCode {
+				t.Errorf("code = %q, want %q", jsonErr.Error.Code, tt.wantCode)
+			}
+			if tt.wantStatus > 0 && jsonErr.Error.Status != tt.wantStatus {
+				t.Errorf("status = %d, want %d", jsonErr.Error.Status, tt.wantStatus)
+			}
+			if jsonErr.Error.Retryable != tt.wantRetry {
+				t.Errorf("retryable = %v, want %v", jsonErr.Error.Retryable, tt.wantRetry)
 			}
 		})
 	}
