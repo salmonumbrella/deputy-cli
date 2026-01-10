@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -101,8 +102,13 @@ func newPayAwardsGetCmd() *cobra.Command {
 			}
 
 			io := iocontext.FromContext(cmd.Context())
-			for k, v := range award {
-				_, _ = fmt.Fprintf(io.Out, "%s: %v\n", k, v)
+			keys := make([]string, 0, len(award))
+			for k := range award {
+				keys = append(keys, k)
+			}
+			sort.Strings(keys)
+			for _, k := range keys {
+				_, _ = fmt.Fprintf(io.Out, "%s: %v\n", k, award[k])
 			}
 			return nil
 		},
