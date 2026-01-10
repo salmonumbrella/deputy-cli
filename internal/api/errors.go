@@ -10,7 +10,6 @@ import (
 const (
 	// Authentication
 	ErrCodeAuthRequired  = "AUTH_REQUIRED"
-	ErrCodeAuthExpired   = "AUTH_EXPIRED"
 	ErrCodeAuthForbidden = "AUTH_FORBIDDEN"
 
 	// Validation

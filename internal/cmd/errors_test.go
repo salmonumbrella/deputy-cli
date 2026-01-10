@@ -67,22 +67,22 @@ func TestFormatError(t *testing.T) {
 		{
 			name:     "API error 409 conflict",
 			err:      &api.APIError{StatusCode: 409, Message: "Conflict"},
-			contains: []string{"API error 409", "Conflict", "Verify the resource state"},
+			contains: []string{"API error 409", "Conflict", "verify the resource state"},
 		},
 		{
 			name:     "API error 422 validation failed",
 			err:      &api.APIError{StatusCode: 422, Message: "Unprocessable Entity"},
-			contains: []string{"API error 422", "Unprocessable Entity", "Validation failed", "Check required fields"},
+			contains: []string{"API error 422", "Unprocessable Entity", "Validation failed", "check required fields"},
 		},
 		{
 			name:     "API error 429 rate limited",
 			err:      &api.APIError{StatusCode: 429, Message: "Too Many Requests"},
-			contains: []string{"API error 429", "Too Many Requests", "Rate limited", "Wait and retry"},
+			contains: []string{"API error 429", "Too Many Requests", "Rate limited", "wait and retry"},
 		},
 		{
 			name:     "API error 500 server error",
 			err:      &api.APIError{StatusCode: 500, Message: "Internal Server Error"},
-			contains: []string{"API error 500", "Internal Server Error", "Server error", "Retry"},
+			contains: []string{"API error 500", "Internal Server Error", "Server error", "retry"},
 		},
 		{
 			name:     "API error 502 bad gateway (5xx)",
@@ -155,37 +155,37 @@ func TestFormatAPIError(t *testing.T) {
 			name:       "404 has resource hint",
 			statusCode: 404,
 			message:    "Not Found",
-			wantHint:   "Resource not found. Try 'deputy resource list' to verify names.",
+			wantHint:   "Resource not found, try 'deputy resource list' to verify names.",
 		},
 		{
 			name:       "409 has conflict hint",
 			statusCode: 409,
 			message:    "Conflict",
-			wantHint:   "Conflict with existing data. Verify the resource state.",
+			wantHint:   "Conflict with existing data, verify the resource state.",
 		},
 		{
 			name:       "422 has validation hint",
 			statusCode: 422,
 			message:    "Unprocessable Entity",
-			wantHint:   "Validation failed. Check required fields and formats.",
+			wantHint:   "Validation failed, check required fields and formats.",
 		},
 		{
 			name:       "429 has rate limit hint",
 			statusCode: 429,
 			message:    "Too Many Requests",
-			wantHint:   "Rate limited. Wait and retry.",
+			wantHint:   "Rate limited, wait and retry.",
 		},
 		{
 			name:       "500 has server error hint",
 			statusCode: 500,
 			message:    "Internal Server Error",
-			wantHint:   "Server error. Retry or try again later.",
+			wantHint:   "Server error, retry later.",
 		},
 		{
 			name:       "599 has server error hint (5xx range)",
 			statusCode: 599,
 			message:    "Unknown Server Error",
-			wantHint:   "Server error. Retry or try again later.",
+			wantHint:   "Server error, retry later.",
 		},
 	}
 

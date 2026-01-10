@@ -55,31 +55,12 @@ func FormatError(err error, debug bool) string {
 
 func formatAPIError(apiErr *api.APIError) string {
 	base := fmt.Sprintf("API error %d: %s", apiErr.StatusCode, apiErr.Message)
-	var hint string
-
-	switch apiErr.StatusCode {
-	case 401:
-		hint = "Run 'deputy auth login' to authenticate."
-	case 403:
-		hint = "Check role permissions for this endpoint."
-	case 404:
-		hint = "Resource not found. Try 'deputy resource list' to verify names."
-	case 409:
-		hint = "Conflict with existing data. Verify the resource state."
-	case 422:
-		hint = "Validation failed. Check required fields and formats."
-	case 429:
-		hint = "Rate limited. Wait and retry."
-	default:
-		if apiErr.StatusCode >= 500 {
-			hint = "Server error. Retry or try again later."
-		}
-	}
+	hint := hintForStatus(apiErr.StatusCode)
 
 	if hint == "" {
 		return base + "\nHint: Use --debug for details. Avoid piping stderr into jq (omit 2>&1)."
 	}
-	return base + "\nHint: " + hint + " Use --debug for details. Avoid piping stderr into jq (omit 2>&1)."
+	return base + "\nHint: " + hint + ". Use --debug for details. Avoid piping stderr into jq (omit 2>&1)."
 }
 
 // FormatErrorJSON returns a JSON-formatted error for machine parsing.
@@ -134,6 +115,8 @@ func FormatErrorJSON(err error) string {
 	return string(data)
 }
 
+// hintForStatus returns a human-readable hint for the given HTTP status code.
+// Used by both text and JSON error formatting.
 func hintForStatus(status int) string {
 	switch status {
 	case 401:
@@ -141,11 +124,11 @@ func hintForStatus(status int) string {
 	case 403:
 		return "Check role permissions for this endpoint"
 	case 404:
-		return "Resource not found"
+		return "Resource not found, try 'deputy resource list' to verify names"
 	case 409:
-		return "Conflict with existing data"
+		return "Conflict with existing data, verify the resource state"
 	case 422:
-		return "Check required fields and formats"
+		return "Validation failed, check required fields and formats"
 	case 429:
 		return "Rate limited, wait and retry"
 	default:
