@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"sort"
 	"strconv"
 
 	"github.com/salmonumbrella/deputy-cli/internal/api"
@@ -329,8 +330,13 @@ func newLocationsSettingsCmd() *cobra.Command {
 
 			io := iocontext.FromContext(cmd.Context())
 			_, _ = fmt.Fprintf(io.Out, "Location %d Settings:\n", id)
-			for k, v := range settings.Settings {
-				_, _ = fmt.Fprintf(io.Out, "  %s: %v\n", k, v)
+			keys := make([]string, 0, len(settings.Settings))
+			for k := range settings.Settings {
+				keys = append(keys, k)
+			}
+			sort.Strings(keys)
+			for _, k := range keys {
+				_, _ = fmt.Fprintf(io.Out, "  %s: %v\n", k, settings.Settings[k])
 			}
 			return nil
 		},
