@@ -131,6 +131,26 @@ deputy timesheets list-pay-rules --hourly-rate 190
 deputy timesheets select-pay-rule 19379 --pay-rule 304
 ```
 
+### Pay Rates
+
+```bash
+# Award library
+deputy pay awards list
+deputy pay awards get <award-code>
+deputy pay awards set <employee-id> --award <code> --country <code> [--override <payRuleId:hourlyRate>]
+
+# Employee agreements (base rate + area config)
+deputy pay agreements list --employee <id> [--active-only]
+deputy pay agreements get <agreement-id>
+deputy pay agreements update <agreement-id> --base-rate 23
+deputy pay agreements update <agreement-id> --config '{"DepartmentalPay": []}'
+deputy pay agreements update <agreement-id> --config-file ./agreement-config.json
+```
+
+Notes:
+- Area-specific rates live in the employee agreement `Config` payload (schema varies by tenant). Start with `deputy pay agreements get <agreement-id> -o json` and edit only the relevant keys.
+- Award library commands require the Deputy pay-rate library to be enabled for your install.
+
 ### Rosters / Shifts
 
 ```bash

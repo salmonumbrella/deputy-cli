@@ -63,6 +63,7 @@ func TestNewRootCmd(t *testing.T) {
 			"locations",
 			"leave",
 			"departments",
+			"pay",
 			"resource",
 			"me",
 			"webhooks",
@@ -76,9 +77,9 @@ func TestNewRootCmd(t *testing.T) {
 
 	t.Run("has correct subcommand count", func(t *testing.T) {
 		cmd := NewRootCmd()
-		// 14 subcommands: version, completion, auth, employees, timesheets, rosters, locations,
-		// leave, departments, resource, me, webhooks, sales, management
-		assert.Len(t, cmd.Commands(), 14)
+		// 15 subcommands: version, completion, auth, employees, timesheets, rosters, locations,
+		// leave, departments, pay, resource, me, webhooks, sales, management
+		assert.Len(t, cmd.Commands(), 15)
 	})
 
 	t.Run("help executes without error", func(t *testing.T) {
@@ -282,6 +283,7 @@ func TestRootCmd_HelpForSubcommands(t *testing.T) {
 		{"locations", "Manage locations"},
 		{"leave", "Manage leave"},
 		{"departments", "Manage departments"},
+		{"pay", "Manage pay rates and agreements"},
 		{"resource", "Generic resource"},
 		{"me", "Current user"},
 		{"webhooks", "Manage webhooks"},
