@@ -53,6 +53,9 @@ const maxErrorBodyLen = 500
 // In non-debug mode, it returns a generic message with just the status code.
 // In debug mode, it includes the response body (truncated to maxErrorBodyLen characters).
 func sanitizeErrorResponse(statusCode int, body []byte, debug bool) error {
+	code := CodeFromStatus(statusCode)
+	retryable := IsRetryable(statusCode)
+
 	// Map common status codes to generic messages
 	genericMessages := map[int]string{
 		400: "bad request",
@@ -69,23 +72,27 @@ func sanitizeErrorResponse(statusCode int, body []byte, debug bool) error {
 		504: "gateway timeout",
 	}
 
+	var message string
 	if debug && len(body) > 0 {
 		bodyStr := string(body)
 		if len(bodyStr) > maxErrorBodyLen {
 			bodyStr = bodyStr[:maxErrorBodyLen] + "..."
 		}
-		return &APIError{StatusCode: statusCode, Message: bodyStr}
+		message = bodyStr
+	} else if msg, ok := genericMessages[statusCode]; ok {
+		message = msg
+	} else if statusCode >= 500 {
+		message = "server error"
+	} else {
+		message = "request failed"
 	}
 
-	if msg, ok := genericMessages[statusCode]; ok {
-		return &APIError{StatusCode: statusCode, Message: msg}
+	return &APIError{
+		Code:       code,
+		StatusCode: statusCode,
+		Message:    message,
+		Retryable:  retryable,
 	}
-
-	// Fallback for unmapped status codes
-	if statusCode >= 500 {
-		return &APIError{StatusCode: statusCode, Message: "server error"}
-	}
-	return &APIError{StatusCode: statusCode, Message: "request failed"}
 }
 
 // buildURL constructs a URL with optional query parameters for pagination.

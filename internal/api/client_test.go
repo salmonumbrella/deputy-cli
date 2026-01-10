@@ -356,3 +356,28 @@ func TestClient_Me_Error_FullBodyInDebugMode(t *testing.T) {
 	assert.Contains(t, err.Error(), "Invalid token")
 	assert.Contains(t, err.Error(), "abc123")
 }
+
+func TestSanitizeErrorResponse_PopulatesCodeAndRetryable(t *testing.T) {
+	tests := []struct {
+		name          string
+		statusCode    int
+		expectedCode  string
+		expectedRetry bool
+	}{
+		{"401 sets auth_required and not retryable", 401, ErrCodeAuthRequired, false},
+		{"404 sets not_found and not retryable", 404, ErrCodeNotFound, false},
+		{"429 sets rate_limited and retryable", 429, ErrCodeRateLimited, true},
+		{"500 sets server_error and retryable", 500, ErrCodeServerError, true},
+		{"503 sets server_error and retryable", 503, ErrCodeServerError, true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := sanitizeErrorResponse(tt.statusCode, nil, false)
+			apiErr, ok := err.(*APIError)
+			require.True(t, ok, "expected *APIError")
+			assert.Equal(t, tt.expectedCode, apiErr.Code)
+			assert.Equal(t, tt.expectedRetry, apiErr.Retryable)
+		})
+	}
+}
