@@ -227,8 +227,13 @@ func newResourceGetCmd() *cobra.Command {
 			}
 
 			io := iocontext.FromContext(cmd.Context())
-			for k, v := range result {
-				_, _ = fmt.Fprintf(io.Out, "%s: %v\n", k, v)
+			keys := make([]string, 0, len(result))
+			for k := range result {
+				keys = append(keys, k)
+			}
+			sort.Strings(keys)
+			for _, k := range keys {
+				_, _ = fmt.Fprintf(io.Out, "%s: %v\n", k, result[k])
 			}
 
 			return nil
