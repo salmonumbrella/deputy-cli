@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -173,8 +174,13 @@ Examples:
 			_, _ = fmt.Fprintf(io.Out, "Found %d result(s)\n\n", len(results))
 			for i, result := range results {
 				_, _ = fmt.Fprintf(io.Out, "--- Result %d ---\n", i+1)
-				for k, v := range result {
-					_, _ = fmt.Fprintf(io.Out, "  %s: %v\n", k, v)
+				keys := make([]string, 0, len(result))
+				for k := range result {
+					keys = append(keys, k)
+				}
+				sort.Strings(keys)
+				for _, k := range keys {
+					_, _ = fmt.Fprintf(io.Out, "  %s: %v\n", k, result[k])
 				}
 				_, _ = fmt.Fprintf(io.Out, "\n")
 			}
