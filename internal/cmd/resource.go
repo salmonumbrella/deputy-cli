@@ -81,15 +81,25 @@ func newResourceInfoCmd() *cobra.Command {
 			_, _ = fmt.Fprintf(io.Out, "Resource: %s\n\n", info.Name)
 
 			_, _ = fmt.Fprintf(io.Out, "Fields:\n")
-			for name, fieldInfo := range info.Fields {
-				_, _ = fmt.Fprintf(io.Out, "  %s: %v\n", name, fieldInfo)
+			fieldNames := make([]string, 0, len(info.Fields))
+			for name := range info.Fields {
+				fieldNames = append(fieldNames, name)
+			}
+			sort.Strings(fieldNames)
+			for _, name := range fieldNames {
+				_, _ = fmt.Fprintf(io.Out, "  %s: %v\n", name, info.Fields[name])
 			}
 
 			if info.HasAssocs() {
 				_, _ = fmt.Fprintf(io.Out, "\nAssociations:\n")
 				if assocMap := info.AssocsAsMap(); assocMap != nil {
-					for name, assocInfo := range assocMap {
-						_, _ = fmt.Fprintf(io.Out, "  %s: %v\n", name, assocInfo)
+					assocNames := make([]string, 0, len(assocMap))
+					for name := range assocMap {
+						assocNames = append(assocNames, name)
+					}
+					sort.Strings(assocNames)
+					for _, name := range assocNames {
+						_, _ = fmt.Fprintf(io.Out, "  %s: %v\n", name, assocMap[name])
 					}
 				} else if assocArr := info.AssocsAsArray(); assocArr != nil {
 					for _, assocName := range assocArr {
