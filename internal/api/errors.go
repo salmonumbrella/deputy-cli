@@ -6,6 +6,31 @@ import (
 	"net/http"
 )
 
+// Error codes for machine-readable error handling
+const (
+	// Authentication
+	ErrCodeAuthRequired  = "AUTH_REQUIRED"
+	ErrCodeAuthExpired   = "AUTH_EXPIRED"
+	ErrCodeAuthForbidden = "AUTH_FORBIDDEN"
+
+	// Validation
+	ErrCodeValidation   = "VALIDATION_FAILED"
+	ErrCodeInvalidInput = "INVALID_INPUT"
+	ErrCodeNotFound     = "NOT_FOUND"
+	ErrCodeConflict     = "CONFLICT"
+
+	// Rate limiting
+	ErrCodeRateLimited = "RATE_LIMITED"
+
+	// Server
+	ErrCodeServerError = "SERVER_ERROR"
+	ErrCodeTimeout     = "TIMEOUT"
+
+	// Client
+	ErrCodeNetworkError = "NETWORK_ERROR"
+	ErrCodeInvalidFlag  = "INVALID_FLAG"
+)
+
 // APIError represents an error response from the Deputy API.
 type APIError struct {
 	StatusCode int
