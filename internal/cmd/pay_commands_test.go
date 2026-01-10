@@ -179,30 +179,73 @@ func TestPayAwardsSetCommand_Errors(t *testing.T) {
 }
 
 func TestPayAgreementsListCommand(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assert.Equal(t, http.MethodPost, r.Method)
-		assert.Equal(t, "/api/v1/resource/EmployeeAgreement/QUERY", r.URL.Path)
-		w.Header().Set("Content-Type", "application/json")
-		_ = json.NewEncoder(w).Encode([]api.EmployeeAgreement{{Id: 7, Employee: 42, Active: true}})
-	}))
-	defer server.Close()
+	t.Run("basic list", func(t *testing.T) {
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			assert.Equal(t, http.MethodPost, r.Method)
+			assert.Equal(t, "/api/v1/resource/EmployeeAgreement/QUERY", r.URL.Path)
+			w.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(w).Encode([]api.EmployeeAgreement{{Id: 7, Employee: 42, Active: true}})
+		}))
+		defer server.Close()
 
-	client := newTestClient(server.URL, "test-token")
-	mockFactory := &MockClientFactory{client: client}
+		client := newTestClient(server.URL, "test-token")
+		mockFactory := &MockClientFactory{client: client}
 
-	buf := &bytes.Buffer{}
-	ctx := WithClientFactory(context.Background(), mockFactory)
-	ctx = iocontext.WithIO(ctx, &iocontext.IO{Out: buf, ErrOut: buf})
+		buf := &bytes.Buffer{}
+		ctx := WithClientFactory(context.Background(), mockFactory)
+		ctx = iocontext.WithIO(ctx, &iocontext.IO{Out: buf, ErrOut: buf})
 
-	cmd := newPayAgreementsListCmd()
-	cmd.SetContext(ctx)
-	cmd.SetOut(buf)
-	cmd.SetArgs([]string{"--employee", "42"})
+		cmd := newPayAgreementsListCmd()
+		cmd.SetContext(ctx)
+		cmd.SetOut(buf)
+		cmd.SetArgs([]string{"--employee", "42"})
 
-	err := cmd.Execute()
-	require.NoError(t, err)
-	assert.Contains(t, buf.String(), "EMPLOYEE")
-	assert.Contains(t, buf.String(), "42")
+		err := cmd.Execute()
+		require.NoError(t, err)
+		assert.Contains(t, buf.String(), "EMPLOYEE")
+		assert.Contains(t, buf.String(), "42")
+	})
+
+	t.Run("with active-only flag", func(t *testing.T) {
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			assert.Equal(t, http.MethodPost, r.Method)
+			assert.Equal(t, "/api/v1/resource/EmployeeAgreement/QUERY", r.URL.Path)
+
+			var payload map[string]interface{}
+			require.NoError(t, json.NewDecoder(r.Body).Decode(&payload))
+
+			search, ok := payload["search"].(map[string]interface{})
+			require.True(t, ok, "expected search object in payload")
+
+			// Verify s2 filter for Active field
+			s2, ok := search["s2"].(map[string]interface{})
+			require.True(t, ok, "expected s2 filter when --active-only is set")
+			assert.Equal(t, "Active", s2["field"])
+			assert.Equal(t, "eq", s2["type"])
+			assert.Equal(t, true, s2["data"])
+
+			w.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(w).Encode([]api.EmployeeAgreement{{Id: 7, Employee: 42, Active: true}})
+		}))
+		defer server.Close()
+
+		client := newTestClient(server.URL, "test-token")
+		mockFactory := &MockClientFactory{client: client}
+
+		buf := &bytes.Buffer{}
+		ctx := WithClientFactory(context.Background(), mockFactory)
+		ctx = iocontext.WithIO(ctx, &iocontext.IO{Out: buf, ErrOut: buf})
+
+		cmd := newPayAgreementsListCmd()
+		cmd.SetContext(ctx)
+		cmd.SetOut(buf)
+		cmd.SetArgs([]string{"--employee", "42", "--active-only"})
+
+		err := cmd.Execute()
+		require.NoError(t, err)
+		assert.Contains(t, buf.String(), "EMPLOYEE")
+		assert.Contains(t, buf.String(), "42")
+	})
 }
 
 func TestPayAgreementsListCommand_Errors(t *testing.T) {
