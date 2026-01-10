@@ -160,6 +160,22 @@ func TestPayAwardsSetCommand_Errors(t *testing.T) {
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "invalid override")
 	})
+
+	t.Run("zero override rate", func(t *testing.T) {
+		cmd := newPayAwardsSetCmd()
+		cmd.SetArgs([]string{"123", "--award", "fastfood", "--country", "au", "--override", "323208:0"})
+		err := cmd.Execute()
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "must be greater than 0")
+	})
+
+	t.Run("negative override rate", func(t *testing.T) {
+		cmd := newPayAwardsSetCmd()
+		cmd.SetArgs([]string{"123", "--award", "fastfood", "--country", "au", "--override", "323208:-1"})
+		err := cmd.Execute()
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "must be greater than 0")
+	})
 }
 
 func TestPayAgreementsListCommand(t *testing.T) {
@@ -273,6 +289,14 @@ func TestPayAgreementsUpdateCommand_Errors(t *testing.T) {
 		err := cmd.Execute()
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "at least one")
+	})
+
+	t.Run("base rate must be greater than zero", func(t *testing.T) {
+		cmd := newPayAgreementsUpdateCmd()
+		cmd.SetArgs([]string{"9", "--base-rate", "0"})
+		err := cmd.Execute()
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "--base-rate must be greater than 0")
 	})
 
 	t.Run("config and config-file together", func(t *testing.T) {

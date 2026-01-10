@@ -117,6 +117,8 @@ func KnownResources() []string {
 		"Company",
 		"OperationalUnit",
 		"Timesheet",
+		"PayRules",
+		"TimesheetPayReturn",
 		"Roster",
 		"Leave",
 		"LeaveRules",

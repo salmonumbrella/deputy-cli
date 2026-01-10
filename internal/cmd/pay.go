@@ -314,6 +314,9 @@ Config should be a JSON string (or provided via --config-file).`,
 			if !baseRateSet && !configSet && !configFileSet {
 				return errors.New("at least one of --base-rate, --config, or --config-file is required")
 			}
+			if baseRateSet && baseRate <= 0 {
+				return errors.New("--base-rate must be greater than 0")
+			}
 			if configSet && configFileSet {
 				return errors.New("use either --config or --config-file, not both")
 			}
@@ -402,6 +405,9 @@ func parseOverridePayRule(input string) (api.OverridePayRule, error) {
 	rate, err := strconv.ParseFloat(parts[1], 64)
 	if err != nil {
 		return api.OverridePayRule{}, fmt.Errorf("invalid override rate %q", parts[1])
+	}
+	if rate <= 0 {
+		return api.OverridePayRule{}, fmt.Errorf("invalid override rate %q (must be greater than 0)", parts[1])
 	}
 
 	return api.OverridePayRule{Id: parts[0], HourlyRate: rate}, nil

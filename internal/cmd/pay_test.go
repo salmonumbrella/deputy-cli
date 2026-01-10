@@ -30,4 +30,14 @@ func TestParseOverridePayRule(t *testing.T) {
 		_, err := parseOverridePayRule("123:abc")
 		assert.Error(t, err)
 	})
+
+	t.Run("zero rate", func(t *testing.T) {
+		_, err := parseOverridePayRule("123:0")
+		assert.Error(t, err)
+	})
+
+	t.Run("negative rate", func(t *testing.T) {
+		_, err := parseOverridePayRule("123:-1")
+		assert.Error(t, err)
+	})
 }
