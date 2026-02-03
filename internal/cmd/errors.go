@@ -119,6 +119,8 @@ func FormatErrorJSON(err error) string {
 // Used by both text and JSON error formatting.
 func hintForStatus(status int) string {
 	switch status {
+	case 400:
+		return "Check field names match the resource schema (use 'deputy resource info <Resource>')"
 	case 401:
 		return "Run 'deputy auth login' to authenticate"
 	case 403:
@@ -127,6 +129,10 @@ func hintForStatus(status int) string {
 		return "Resource not found, try 'deputy resource list' to verify names"
 	case 409:
 		return "Conflict with existing data, verify the resource state"
+	case 412:
+		return "Precondition failed. Try 'deputy auth test' to verify credentials"
+	case 417:
+		return "Data format error. Check JSON structure (arrays vs objects)"
 	case 422:
 		return "Validation failed, check required fields and formats"
 	case 429:

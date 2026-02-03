@@ -95,9 +95,19 @@ func TestFormatError(t *testing.T) {
 			contains: []string{"API error 503", "Service Unavailable", "Server error"},
 		},
 		{
-			name:     "API error 400 bad request (no specific hint)",
+			name:     "API error 400 bad request",
 			err:      &api.APIError{StatusCode: 400, Message: "Bad Request"},
-			contains: []string{"API error 400", "Bad Request", "Use --debug for details"},
+			contains: []string{"API error 400", "Bad Request", "field names", "deputy resource info"},
+		},
+		{
+			name:     "API error 412 precondition failed",
+			err:      &api.APIError{StatusCode: 412, Message: "Precondition Failed"},
+			contains: []string{"API error 412", "Precondition Failed", "deputy auth test"},
+		},
+		{
+			name:     "API error 417 expectation failed",
+			err:      &api.APIError{StatusCode: 417, Message: "Expectation Failed"},
+			contains: []string{"API error 417", "Expectation Failed", "JSON structure"},
 		},
 		{
 			name:   "API error debug mode returns raw",
@@ -140,6 +150,12 @@ func TestFormatAPIError(t *testing.T) {
 		wantHint   string
 	}{
 		{
+			name:       "400 has field names hint",
+			statusCode: 400,
+			message:    "Bad Request",
+			wantHint:   "Check field names match the resource schema (use 'deputy resource info <Resource>').",
+		},
+		{
 			name:       "401 has auth hint",
 			statusCode: 401,
 			message:    "Unauthorized",
@@ -162,6 +178,18 @@ func TestFormatAPIError(t *testing.T) {
 			statusCode: 409,
 			message:    "Conflict",
 			wantHint:   "Conflict with existing data, verify the resource state.",
+		},
+		{
+			name:       "412 has precondition hint",
+			statusCode: 412,
+			message:    "Precondition Failed",
+			wantHint:   "Precondition failed. Try 'deputy auth test' to verify credentials.",
+		},
+		{
+			name:       "417 has data format hint",
+			statusCode: 417,
+			message:    "Expectation Failed",
+			wantHint:   "Data format error. Check JSON structure (arrays vs objects).",
 		},
 		{
 			name:       "422 has validation hint",
@@ -214,8 +242,8 @@ func TestFormatAPIError(t *testing.T) {
 }
 
 func TestFormatAPIErrorNoSpecificHint(t *testing.T) {
-	// Test status codes without specific hints (e.g., 400, 418, 499)
-	codes := []int{400, 418, 499}
+	// Test status codes without specific hints (e.g., 418, 499)
+	codes := []int{418, 499}
 	for _, code := range codes {
 		t.Run(fmt.Sprintf("status_%d", code), func(t *testing.T) {
 			apiErr := &api.APIError{StatusCode: code, Message: "Error"}
@@ -223,10 +251,13 @@ func TestFormatAPIErrorNoSpecificHint(t *testing.T) {
 
 			// Should NOT contain specific hints for known codes
 			specificHints := []string{
+				"Check field names",
 				"Run 'deputy auth login'",
 				"Check role permissions",
 				"Resource not found",
 				"Conflict with existing data",
+				"Precondition failed",
+				"Data format error",
 				"Validation failed",
 				"Rate limited",
 				"Server error",
@@ -357,5 +388,29 @@ func TestFormatErrorJSON(t *testing.T) {
 				t.Errorf("retryable = %v, want %v", jsonErr.Error.Retryable, tt.wantRetry)
 			}
 		})
+	}
+}
+
+func TestHintForStatus_400(t *testing.T) {
+	hint := hintForStatus(400)
+	if !strings.Contains(hint, "field names") {
+		t.Errorf("hintForStatus(400) = %q, want to contain 'field names'", hint)
+	}
+	if !strings.Contains(hint, "deputy resource info") {
+		t.Errorf("hintForStatus(400) = %q, want to contain 'deputy resource info'", hint)
+	}
+}
+
+func TestHintForStatus_412(t *testing.T) {
+	hint := hintForStatus(412)
+	if !strings.Contains(hint, "auth test") {
+		t.Errorf("hintForStatus(412) = %q, want to contain 'auth test'", hint)
+	}
+}
+
+func TestHintForStatus_417(t *testing.T) {
+	hint := hintForStatus(417)
+	if !strings.Contains(hint, "JSON structure") {
+		t.Errorf("hintForStatus(417) = %q, want to contain 'JSON structure'", hint)
 	}
 }
