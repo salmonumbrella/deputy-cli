@@ -43,7 +43,9 @@ func newPayAwardsCmd() *cobra.Command {
 }
 
 func newPayAwardsListCmd() *cobra.Command {
-	return &cobra.Command{
+	var limit, offset int
+
+	cmd := &cobra.Command{
 		Use:   "list",
 		Short: "List awards from the pay rate library",
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -57,13 +59,23 @@ func newPayAwardsListCmd() *cobra.Command {
 				return err
 			}
 
-			format := outfmt.GetFormat(cmd.Context())
-			if format == "json" {
-				f := outfmt.New(cmd.Context())
-				return f.Output(awards)
+			awards = applyPagination(awards, offset, limit)
+
+			ctx := cmd.Context()
+			if limit > 0 {
+				ctx = outfmt.WithLimit(ctx, limit)
+			}
+			if offset > 0 {
+				ctx = outfmt.WithOffset(ctx, offset)
 			}
 
-			f := outfmt.New(cmd.Context())
+			format := outfmt.GetFormat(ctx)
+			if format == "json" {
+				f := outfmt.New(ctx)
+				return f.OutputList(awards)
+			}
+
+			f := outfmt.New(ctx)
 			f.StartTable([]string{"CODE", "NAME", "COUNTRY"})
 			for _, award := range awards {
 				code := stringFromMap(award, "AwardCode", "Code", "Id")
@@ -75,6 +87,11 @@ func newPayAwardsListCmd() *cobra.Command {
 			return nil
 		},
 	}
+
+	cmd.Flags().IntVar(&limit, "limit", 0, "Maximum number of results (0 = unlimited)")
+	cmd.Flags().IntVar(&offset, "offset", 0, "Number of results to skip")
+
+	return cmd
 }
 
 func newPayAwardsGetCmd() *cobra.Command {
@@ -199,6 +216,7 @@ func newPayAgreementsCmd() *cobra.Command {
 func newPayAgreementsListCmd() *cobra.Command {
 	var employeeID int
 	var activeOnly bool
+	var limit, offset int
 
 	cmd := &cobra.Command{
 		Use:   "list",
@@ -218,13 +236,23 @@ func newPayAgreementsListCmd() *cobra.Command {
 				return err
 			}
 
-			format := outfmt.GetFormat(cmd.Context())
-			if format == "json" {
-				f := outfmt.New(cmd.Context())
-				return f.Output(agreements)
+			agreements = applyPagination(agreements, offset, limit)
+
+			ctx := cmd.Context()
+			if limit > 0 {
+				ctx = outfmt.WithLimit(ctx, limit)
+			}
+			if offset > 0 {
+				ctx = outfmt.WithOffset(ctx, offset)
 			}
 
-			f := outfmt.New(cmd.Context())
+			format := outfmt.GetFormat(ctx)
+			if format == "json" {
+				f := outfmt.New(ctx)
+				return f.OutputList(agreements)
+			}
+
+			f := outfmt.New(ctx)
 			f.StartTable([]string{"ID", "EMPLOYEE", "ACTIVE", "BASE RATE"})
 			for _, agreement := range agreements {
 				baseRate := ""
@@ -249,6 +277,8 @@ func newPayAgreementsListCmd() *cobra.Command {
 
 	cmd.Flags().IntVar(&employeeID, "employee", 0, "Employee ID (required)")
 	cmd.Flags().BoolVar(&activeOnly, "active-only", false, "Only show active agreements")
+	cmd.Flags().IntVar(&limit, "limit", 0, "Maximum number of results (0 = unlimited)")
+	cmd.Flags().IntVar(&offset, "offset", 0, "Number of results to skip")
 
 	return cmd
 }
