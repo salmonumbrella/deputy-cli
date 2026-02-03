@@ -239,9 +239,9 @@ func TestFormatter_OutputWithMeta(t *testing.T) {
 	err = json.Unmarshal(out.Bytes(), &result)
 	require.NoError(t, err)
 
-	assert.Contains(t, result, "data")
-	assert.Contains(t, result, "_meta")
-	meta := result["_meta"].(map[string]any)
+	assert.Contains(t, result, "items")
+	assert.Contains(t, result, "meta")
+	meta := result["meta"].(map[string]any)
 	assert.Equal(t, float64(2), meta["count"])
 	assert.Equal(t, float64(10), meta["limit"])
 	assert.Equal(t, float64(0), meta["offset"])
@@ -305,4 +305,88 @@ func TestAutoMeta_NonSlice(t *testing.T) {
 	data := map[string]string{"key": "value"}
 	meta := AutoMeta(data)
 	assert.Empty(t, meta)
+}
+
+func TestFormatter_OutputList(t *testing.T) {
+	out := &bytes.Buffer{}
+	ctx := WithFormat(testContext(out), "json")
+	ctx = WithLimit(ctx, 10)
+	ctx = WithOffset(ctx, 5)
+	f := New(ctx)
+
+	data := []map[string]any{
+		{"id": 1, "name": "Alice"},
+		{"id": 2, "name": "Bob"},
+	}
+
+	err := f.OutputList(data)
+	require.NoError(t, err)
+
+	var result map[string]any
+	err = json.Unmarshal(out.Bytes(), &result)
+	require.NoError(t, err)
+
+	assert.Contains(t, result, "items")
+	assert.Contains(t, result, "meta")
+	meta := result["meta"].(map[string]any)
+	assert.Equal(t, float64(2), meta["count"])
+	assert.Equal(t, float64(10), meta["limit"])
+	assert.Equal(t, float64(5), meta["offset"])
+}
+
+func TestFormatter_OutputList_RawMode(t *testing.T) {
+	out := &bytes.Buffer{}
+	ctx := WithFormat(testContext(out), "json")
+	ctx = WithRaw(ctx, true)
+	ctx = WithLimit(ctx, 10)
+	f := New(ctx)
+
+	data := []map[string]any{
+		{"id": 1, "name": "Alice"},
+		{"id": 2, "name": "Bob"},
+	}
+
+	err := f.OutputList(data)
+	require.NoError(t, err)
+
+	// In raw mode, should output JSON lines without wrapper
+	lines := bytes.Split(bytes.TrimSpace(out.Bytes()), []byte("\n"))
+	require.Len(t, lines, 2)
+	assert.Contains(t, string(lines[0]), "\"id\":1")
+	assert.Contains(t, string(lines[1]), "\"id\":2")
+}
+
+func TestFormatter_OutputList_TextReturnsError(t *testing.T) {
+	out := &bytes.Buffer{}
+	ctx := WithFormat(testContext(out), "text")
+	f := New(ctx)
+
+	data := []string{"a", "b"}
+	err := f.OutputList(data)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "table methods")
+}
+
+func TestLimitOffsetContext(t *testing.T) {
+	ctx := context.Background()
+
+	// Test limit
+	limit, ok := GetLimit(ctx)
+	assert.False(t, ok)
+	assert.Equal(t, 0, limit)
+
+	ctx = WithLimit(ctx, 50)
+	limit, ok = GetLimit(ctx)
+	assert.True(t, ok)
+	assert.Equal(t, 50, limit)
+
+	// Test offset
+	offset, ok := GetOffset(ctx)
+	assert.False(t, ok)
+	assert.Equal(t, 0, offset)
+
+	ctx = WithOffset(ctx, 25)
+	offset, ok = GetOffset(ctx)
+	assert.True(t, ok)
+	assert.Equal(t, 25, offset)
 }

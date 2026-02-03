@@ -48,8 +48,10 @@ func newDepartmentsListCmd() *cobra.Command {
 
 			format := outfmt.GetFormat(cmd.Context())
 			if format == "json" {
-				f := outfmt.New(cmd.Context())
-				return f.Output(departments)
+				ctx := outfmt.WithLimit(cmd.Context(), limit)
+				ctx = outfmt.WithOffset(ctx, offset)
+				f := outfmt.New(ctx)
+				return f.OutputList(departments)
 			}
 
 			f := outfmt.New(cmd.Context())

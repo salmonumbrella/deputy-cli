@@ -105,7 +105,7 @@ filter by date (YYYY-MM-DD).`,
 					return err
 				}
 
-				return outputTimesheets(cmd, timesheets)
+				return outputTimesheets(cmd, timesheets, limit, offset)
 			}
 
 			opts := &api.ListOptions{Limit: limit, Offset: offset}
@@ -121,7 +121,7 @@ filter by date (YYYY-MM-DD).`,
 				}
 			}
 
-			return outputTimesheets(cmd, timesheets)
+			return outputTimesheets(cmd, timesheets, limit, offset)
 		},
 	}
 
@@ -253,7 +253,7 @@ Use --hourly-rate to filter by a specific rate.`,
 			format := outfmt.GetFormat(cmd.Context())
 			if format == "json" {
 				f := outfmt.New(cmd.Context())
-				return f.Output(rules)
+				return f.OutputList(rules)
 			}
 
 			f := outfmt.New(cmd.Context())
@@ -368,11 +368,13 @@ func filterTimesheetsByDate(timesheets []api.Timesheet, from, to time.Time, hasF
 	return filtered, nil
 }
 
-func outputTimesheets(cmd *cobra.Command, timesheets []api.Timesheet) error {
+func outputTimesheets(cmd *cobra.Command, timesheets []api.Timesheet, limit, offset int) error {
 	format := outfmt.GetFormat(cmd.Context())
 	if format == "json" {
-		f := outfmt.New(cmd.Context())
-		return f.Output(timesheets)
+		ctx := outfmt.WithLimit(cmd.Context(), limit)
+		ctx = outfmt.WithOffset(ctx, offset)
+		f := outfmt.New(ctx)
+		return f.OutputList(timesheets)
 	}
 
 	f := outfmt.New(cmd.Context())

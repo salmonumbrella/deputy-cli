@@ -60,8 +60,10 @@ func newLeaveListCmd() *cobra.Command {
 
 			format := outfmt.GetFormat(cmd.Context())
 			if format == "json" {
-				f := outfmt.New(cmd.Context())
-				return f.Output(leaves)
+				ctx := outfmt.WithLimit(cmd.Context(), limit)
+				ctx = outfmt.WithOffset(ctx, offset)
+				f := outfmt.New(ctx)
+				return f.OutputList(leaves)
 			}
 
 			f := outfmt.New(cmd.Context())

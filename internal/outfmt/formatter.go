@@ -44,10 +44,36 @@ func (f *Formatter) OutputWithMeta(data any, meta map[string]any) error {
 	}
 
 	wrapped := map[string]any{
-		"data":  data,
-		"_meta": meta,
+		"items": data,
+		"meta":  meta,
 	}
 	return f.Output(wrapped)
+}
+
+// OutputList outputs a list/array with standard metadata wrapper.
+// Automatically includes count from data length, plus limit/offset from context.
+// Use this for all list commands to ensure consistent agent-friendly output.
+func (f *Formatter) OutputList(data any) error {
+	format := GetFormat(f.ctx)
+	if format != "json" {
+		return fmt.Errorf("use table methods for text output")
+	}
+
+	if IsRaw(f.ctx) {
+		return f.outputJSON(data) // Raw mode outputs JSON Lines without wrapper
+	}
+
+	meta := AutoMeta(data)
+
+	// Add limit/offset from context if present
+	if limit, ok := GetLimit(f.ctx); ok {
+		meta["limit"] = limit
+	}
+	if offset, ok := GetOffset(f.ctx); ok {
+		meta["offset"] = offset
+	}
+
+	return f.OutputWithMeta(data, meta)
 }
 
 // AutoMeta generates metadata for slices automatically.

@@ -50,8 +50,10 @@ func newRostersListCmd() *cobra.Command {
 
 			format := outfmt.GetFormat(cmd.Context())
 			if format == "json" {
-				f := outfmt.New(cmd.Context())
-				return f.Output(rosters)
+				ctx := outfmt.WithLimit(cmd.Context(), limit)
+				ctx = outfmt.WithOffset(ctx, offset)
+				f := outfmt.New(ctx)
+				return f.OutputList(rosters)
 			}
 
 			f := outfmt.New(cmd.Context())
@@ -368,7 +370,7 @@ Example:
 			format := outfmt.GetFormat(cmd.Context())
 			if format == "json" {
 				f := outfmt.New(cmd.Context())
-				return f.Output(rosters)
+				return f.OutputList(rosters)
 			}
 
 			f := outfmt.New(cmd.Context())

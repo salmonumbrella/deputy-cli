@@ -39,7 +39,7 @@ func newResourceListCmd() *cobra.Command {
 			format := outfmt.GetFormat(cmd.Context())
 			if format == "json" {
 				f := outfmt.New(cmd.Context())
-				return f.Output(resources)
+				return f.OutputList(resources)
 			}
 
 			f := outfmt.New(cmd.Context())
@@ -170,8 +170,10 @@ Examples:
 
 			format := outfmt.GetFormat(cmd.Context())
 			if format == "json" {
-				f := outfmt.New(cmd.Context())
-				return f.Output(results)
+				ctx := outfmt.WithLimit(cmd.Context(), limit)
+				ctx = outfmt.WithOffset(ctx, start)
+				f := outfmt.New(ctx)
+				return f.OutputList(results)
 			}
 
 			io := iocontext.FromContext(cmd.Context())

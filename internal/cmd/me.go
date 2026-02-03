@@ -80,7 +80,7 @@ func newMeTimesheetsCmd() *cobra.Command {
 			format := outfmt.GetFormat(cmd.Context())
 			if format == "json" {
 				f := outfmt.New(cmd.Context())
-				return f.Output(timesheets)
+				return f.OutputList(timesheets)
 			}
 
 			f := outfmt.New(cmd.Context())
@@ -123,7 +123,7 @@ func newMeRostersCmd() *cobra.Command {
 			format := outfmt.GetFormat(cmd.Context())
 			if format == "json" {
 				f := outfmt.New(cmd.Context())
-				return f.Output(rosters)
+				return f.OutputList(rosters)
 			}
 
 			f := outfmt.New(cmd.Context())
@@ -162,7 +162,7 @@ func newMeLeaveCmd() *cobra.Command {
 			format := outfmt.GetFormat(cmd.Context())
 			if format == "json" {
 				f := outfmt.New(cmd.Context())
-				return f.Output(leaves)
+				return f.OutputList(leaves)
 			}
 
 			f := outfmt.New(cmd.Context())

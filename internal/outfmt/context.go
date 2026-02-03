@@ -8,6 +8,8 @@ const (
 	formatKey contextKey = "format"
 	queryKey  contextKey = "query"
 	rawKey    contextKey = "raw"
+	limitKey  contextKey = "limit"
+	offsetKey contextKey = "offset"
 )
 
 func WithFormat(ctx context.Context, format string) context.Context {
@@ -41,4 +43,26 @@ func IsRaw(ctx context.Context) bool {
 		return raw
 	}
 	return false
+}
+
+func WithLimit(ctx context.Context, limit int) context.Context {
+	return context.WithValue(ctx, limitKey, limit)
+}
+
+func GetLimit(ctx context.Context) (int, bool) {
+	if l, ok := ctx.Value(limitKey).(int); ok {
+		return l, true
+	}
+	return 0, false
+}
+
+func WithOffset(ctx context.Context, offset int) context.Context {
+	return context.WithValue(ctx, offsetKey, offset)
+}
+
+func GetOffset(ctx context.Context) (int, bool) {
+	if o, ok := ctx.Value(offsetKey).(int); ok {
+		return o, true
+	}
+	return 0, false
 }

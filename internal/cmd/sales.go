@@ -54,7 +54,7 @@ func newSalesListCmd() *cobra.Command {
 			format := outfmt.GetFormat(cmd.Context())
 			if format == "json" {
 				f := outfmt.New(cmd.Context())
-				return f.Output(sales)
+				return f.OutputList(sales)
 			}
 
 			f := outfmt.New(cmd.Context())

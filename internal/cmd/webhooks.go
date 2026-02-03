@@ -47,8 +47,10 @@ func newWebhooksListCmd() *cobra.Command {
 
 			format := outfmt.GetFormat(cmd.Context())
 			if format == "json" {
-				f := outfmt.New(cmd.Context())
-				return f.Output(webhooks)
+				ctx := outfmt.WithLimit(cmd.Context(), limit)
+				ctx = outfmt.WithOffset(ctx, offset)
+				f := outfmt.New(ctx)
+				return f.OutputList(webhooks)
 			}
 
 			f := outfmt.New(cmd.Context())
