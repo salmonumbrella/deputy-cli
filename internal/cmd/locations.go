@@ -121,7 +121,7 @@ func newLocationsGetCmd() *cobra.Command {
 			_, _ = fmt.Fprintf(io.Out, "ID:       %d\n", location.Id)
 			_, _ = fmt.Fprintf(io.Out, "Name:     %s\n", location.CompanyName)
 			_, _ = fmt.Fprintf(io.Out, "Code:     %s\n", code)
-			_, _ = fmt.Fprintf(io.Out, "Address:  %s\n", location.Address)
+			_, _ = fmt.Fprintf(io.Out, "Address:  %s\n", location.AddressString())
 			_, _ = fmt.Fprintf(io.Out, "Timezone: %s\n", location.Timezone)
 			_, _ = fmt.Fprintf(io.Out, "Active:   %t\n", location.Active)
 			return nil

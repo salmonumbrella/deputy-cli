@@ -9,13 +9,29 @@ import (
 )
 
 type Location struct {
-	Id          int    `json:"Id"`
-	CompanyName string `json:"CompanyName"`
-	Code        string `json:"Code"`
-	CompanyCode string `json:"CompanyCode,omitempty"`
-	Address     string `json:"Address"`
-	Active      bool   `json:"Active"`
-	Timezone    string `json:"Timezone"`
+	Id          int         `json:"Id"`
+	CompanyName string      `json:"CompanyName"`
+	Code        string      `json:"Code"`
+	CompanyCode string      `json:"CompanyCode,omitempty"`
+	Address     interface{} `json:"Address"` // Can be string or int (foreign key)
+	Active      bool        `json:"Active"`
+	Timezone    string      `json:"Timezone"`
+}
+
+// AddressString returns Address as a string for display purposes.
+// When Address is an integer (foreign key to Address table), returns "(ref:N)".
+func (l *Location) AddressString() string {
+	if l.Address == nil {
+		return ""
+	}
+	switch v := l.Address.(type) {
+	case string:
+		return v
+	case float64:
+		return fmt.Sprintf("(ref:%d)", int(v))
+	default:
+		return fmt.Sprintf("%v", v)
+	}
 }
 
 type LocationsService struct {

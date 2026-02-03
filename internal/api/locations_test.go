@@ -572,3 +572,67 @@ func TestLocationsService_UpdateSettings_Forbidden(t *testing.T) {
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "API error 403")
 }
+
+func TestLocationsService_List_FallbackIntegerAddress(t *testing.T) {
+	// Test that Address can be integer (foreign key) from /resource/Company fallback
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case strings.HasSuffix(r.URL.Path, "/supervise/location/simplified"):
+			w.WriteHeader(http.StatusNotFound)
+			_, _ = w.Write([]byte(`{"error":{"code":404,"message":"No method"}}`))
+		case strings.HasSuffix(r.URL.Path, "/resource/Company"):
+			w.Header().Set("Content-Type", "application/json")
+			// Address is an integer (foreign key to Address table) in Company resource
+			_, _ = w.Write([]byte(`[{"Id":1,"CompanyName":"Test Location","Address":123,"Active":true}]`))
+		default:
+			w.WriteHeader(http.StatusNotFound)
+		}
+	}))
+	defer server.Close()
+
+	client := newTestClient(server.URL, "test-token")
+
+	locations, err := client.Locations().List(context.Background(), nil)
+	require.NoError(t, err)
+	require.Len(t, locations, 1)
+	assert.Equal(t, 1, locations[0].Id)
+	assert.Equal(t, "Test Location", locations[0].CompanyName)
+	// Address should be stored and accessible via AddressString()
+	assert.Equal(t, "(ref:123)", locations[0].AddressString())
+}
+
+func TestLocation_AddressString(t *testing.T) {
+	tests := []struct {
+		name     string
+		address  interface{}
+		expected string
+	}{
+		{
+			name:     "string address",
+			address:  "123 Main St",
+			expected: "123 Main St",
+		},
+		{
+			name:     "integer address (as float64 from JSON)",
+			address:  float64(456),
+			expected: "(ref:456)",
+		},
+		{
+			name:     "nil address",
+			address:  nil,
+			expected: "",
+		},
+		{
+			name:     "empty string address",
+			address:  "",
+			expected: "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			loc := Location{Address: tt.address}
+			assert.Equal(t, tt.expected, loc.AddressString())
+		})
+	}
+}
