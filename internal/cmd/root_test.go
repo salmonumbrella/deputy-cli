@@ -9,6 +9,16 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestRootCmd_VersionFlag(t *testing.T) {
+	buf := new(bytes.Buffer)
+	root := NewRootCmd()
+	root.SetOut(buf)
+	root.SetArgs([]string{"--version"})
+	err := root.Execute()
+	require.NoError(t, err)
+	assert.Contains(t, buf.String(), "deputy version")
+}
+
 func TestNewRootCmd(t *testing.T) {
 	t.Run("creates root command with correct name", func(t *testing.T) {
 		cmd := NewRootCmd()

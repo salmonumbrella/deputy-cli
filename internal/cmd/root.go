@@ -29,9 +29,10 @@ var flags globalFlags
 
 func NewRootCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "deputy",
-		Short: "CLI for Deputy workforce management API",
-		Long:  "A command-line interface for interacting with the Deputy API.\nDesigned for both human users and AI agent automation.",
+		Use:     "deputy",
+		Short:   "CLI for Deputy workforce management API",
+		Long:    "A command-line interface for interacting with the Deputy API.\nDesigned for both human users and AI agent automation.",
+		Version: Version,
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 			ctx := cmd.Context()
 			// Preserve existing IO if already set (e.g., in tests), otherwise use defaults
@@ -55,6 +56,8 @@ func NewRootCmd() *cobra.Command {
 		SilenceUsage:  true,
 		SilenceErrors: true,
 	}
+
+	cmd.SetVersionTemplate("deputy version {{.Version}}\n  commit: " + CommitSHA + "\n  built:  " + BuildDate + "\n")
 
 	cmd.PersistentFlags().StringVarP(&flags.Output, "output", "o", "text", "Output format: text or json")
 	cmd.PersistentFlags().BoolVar(&flags.Debug, "debug", false, "Enable debug logging")
