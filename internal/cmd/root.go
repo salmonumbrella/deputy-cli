@@ -77,6 +77,8 @@ func NewRootCmd() *cobra.Command {
 	cmd.AddCommand(newWebhooksCmd())
 	cmd.AddCommand(newSalesCmd())
 	cmd.AddCommand(newManagementCmd())
+	cmd.AddCommand(newListCmd())
+	cmd.AddCommand(newGetCmd())
 
 	return cmd
 }
