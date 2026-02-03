@@ -100,6 +100,22 @@ var newKeychainStore = func() (secrets.Store, error) {
 	return secrets.NewKeychainStore()
 }
 
+// applyPagination applies offset and limit to a slice.
+// It returns the original slice if no pagination is needed.
+// This is used for client-side pagination when the API doesn't support it.
+func applyPagination[T any](items []T, offset, limit int) []T {
+	if offset > 0 {
+		if offset >= len(items) {
+			return []T{}
+		}
+		items = items[offset:]
+	}
+	if limit > 0 && limit < len(items) {
+		items = items[:limit]
+	}
+	return items
+}
+
 // confirmDestructive prompts the user for confirmation before a destructive operation.
 // It auto-confirms (returns nil) if:
 // - yes flag is true (--yes/-y was passed)

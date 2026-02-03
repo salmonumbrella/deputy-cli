@@ -123,6 +123,8 @@ func TestMemoListCommand(t *testing.T) {
 	output := buf.String()
 	assert.Contains(t, output, "List memos")
 	assert.Contains(t, output, "--company")
+	assert.Contains(t, output, "--limit")
+	assert.Contains(t, output, "--offset")
 }
 
 // TestMemoListCommand_RequiresCompanyFlag tests that memo list requires --company.
@@ -241,6 +243,8 @@ func TestJournalListCommand(t *testing.T) {
 	output := buf.String()
 	assert.Contains(t, output, "List journal entries")
 	assert.Contains(t, output, "--employee")
+	assert.Contains(t, output, "--limit")
+	assert.Contains(t, output, "--offset")
 }
 
 // TestJournalListCommand_RequiresEmployeeFlag tests that journal list requires --employee.

@@ -28,6 +28,7 @@ func newSalesCmd() *cobra.Command {
 
 func newSalesListCmd() *cobra.Command {
 	var companyID int
+	var limit, offset int
 
 	cmd := &cobra.Command{
 		Use:   "list",
@@ -51,9 +52,14 @@ func newSalesListCmd() *cobra.Command {
 				return err
 			}
 
+			// Apply client-side pagination
+			sales = applyPagination(sales, offset, limit)
+
 			format := outfmt.GetFormat(cmd.Context())
 			if format == "json" {
-				f := outfmt.New(cmd.Context())
+				ctx := outfmt.WithLimit(cmd.Context(), limit)
+				ctx = outfmt.WithOffset(ctx, offset)
+				f := outfmt.New(ctx)
 				return f.OutputList(sales)
 			}
 
@@ -75,6 +81,8 @@ func newSalesListCmd() *cobra.Command {
 	}
 
 	cmd.Flags().IntVar(&companyID, "company", 0, "Filter by company ID")
+	cmd.Flags().IntVar(&limit, "limit", 0, "Maximum number of results (0 = unlimited)")
+	cmd.Flags().IntVar(&offset, "offset", 0, "Number of results to skip")
 
 	return cmd
 }

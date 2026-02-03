@@ -63,7 +63,9 @@ func newMeInfoCmd() *cobra.Command {
 }
 
 func newMeTimesheetsCmd() *cobra.Command {
-	return &cobra.Command{
+	var limit, offset int
+
+	cmd := &cobra.Command{
 		Use:   "timesheets",
 		Short: "List my timesheets",
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -77,9 +79,14 @@ func newMeTimesheetsCmd() *cobra.Command {
 				return err
 			}
 
+			// Apply client-side pagination
+			timesheets = applyPagination(timesheets, offset, limit)
+
 			format := outfmt.GetFormat(cmd.Context())
 			if format == "json" {
-				f := outfmt.New(cmd.Context())
+				ctx := outfmt.WithLimit(cmd.Context(), limit)
+				ctx = outfmt.WithOffset(ctx, offset)
+				f := outfmt.New(ctx)
 				return f.OutputList(timesheets)
 			}
 
@@ -103,10 +110,17 @@ func newMeTimesheetsCmd() *cobra.Command {
 			return nil
 		},
 	}
+
+	cmd.Flags().IntVar(&limit, "limit", 0, "Maximum number of results (0 = unlimited)")
+	cmd.Flags().IntVar(&offset, "offset", 0, "Number of results to skip")
+
+	return cmd
 }
 
 func newMeRostersCmd() *cobra.Command {
-	return &cobra.Command{
+	var limit, offset int
+
+	cmd := &cobra.Command{
 		Use:   "rosters",
 		Short: "List my rosters",
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -120,9 +134,14 @@ func newMeRostersCmd() *cobra.Command {
 				return err
 			}
 
+			// Apply client-side pagination
+			rosters = applyPagination(rosters, offset, limit)
+
 			format := outfmt.GetFormat(cmd.Context())
 			if format == "json" {
-				f := outfmt.New(cmd.Context())
+				ctx := outfmt.WithLimit(cmd.Context(), limit)
+				ctx = outfmt.WithOffset(ctx, offset)
+				f := outfmt.New(ctx)
 				return f.OutputList(rosters)
 			}
 
@@ -142,10 +161,17 @@ func newMeRostersCmd() *cobra.Command {
 			return nil
 		},
 	}
+
+	cmd.Flags().IntVar(&limit, "limit", 0, "Maximum number of results (0 = unlimited)")
+	cmd.Flags().IntVar(&offset, "offset", 0, "Number of results to skip")
+
+	return cmd
 }
 
 func newMeLeaveCmd() *cobra.Command {
-	return &cobra.Command{
+	var limit, offset int
+
+	cmd := &cobra.Command{
 		Use:   "leave",
 		Short: "List my leave requests",
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -159,9 +185,14 @@ func newMeLeaveCmd() *cobra.Command {
 				return err
 			}
 
+			// Apply client-side pagination
+			leaves = applyPagination(leaves, offset, limit)
+
 			format := outfmt.GetFormat(cmd.Context())
 			if format == "json" {
-				f := outfmt.New(cmd.Context())
+				ctx := outfmt.WithLimit(cmd.Context(), limit)
+				ctx = outfmt.WithOffset(ctx, offset)
+				f := outfmt.New(ctx)
 				return f.OutputList(leaves)
 			}
 
@@ -180,4 +211,9 @@ func newMeLeaveCmd() *cobra.Command {
 			return nil
 		},
 	}
+
+	cmd.Flags().IntVar(&limit, "limit", 0, "Maximum number of results (0 = unlimited)")
+	cmd.Flags().IntVar(&offset, "offset", 0, "Number of results to skip")
+
+	return cmd
 }

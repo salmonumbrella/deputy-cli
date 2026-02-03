@@ -423,6 +423,56 @@ func TestConfirmDestructive(t *testing.T) {
 	})
 }
 
+func TestApplyPagination(t *testing.T) {
+	items := []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
+
+	t.Run("returns all items with no pagination", func(t *testing.T) {
+		result := applyPagination(items, 0, 0)
+		assert.Equal(t, items, result)
+	})
+
+	t.Run("applies limit only", func(t *testing.T) {
+		result := applyPagination(items, 0, 3)
+		assert.Equal(t, []int{1, 2, 3}, result)
+	})
+
+	t.Run("applies offset only", func(t *testing.T) {
+		result := applyPagination(items, 3, 0)
+		assert.Equal(t, []int{4, 5, 6, 7, 8, 9, 10}, result)
+	})
+
+	t.Run("applies both offset and limit", func(t *testing.T) {
+		result := applyPagination(items, 2, 3)
+		assert.Equal(t, []int{3, 4, 5}, result)
+	})
+
+	t.Run("returns empty slice when offset exceeds length", func(t *testing.T) {
+		result := applyPagination(items, 15, 0)
+		assert.Equal(t, []int{}, result)
+	})
+
+	t.Run("returns remaining items when limit exceeds available", func(t *testing.T) {
+		result := applyPagination(items, 8, 10)
+		assert.Equal(t, []int{9, 10}, result)
+	})
+
+	t.Run("handles empty input slice", func(t *testing.T) {
+		result := applyPagination([]int{}, 0, 5)
+		assert.Equal(t, []int{}, result)
+	})
+
+	t.Run("works with string slices", func(t *testing.T) {
+		strings := []string{"a", "b", "c", "d", "e"}
+		result := applyPagination(strings, 1, 2)
+		assert.Equal(t, []string{"b", "c"}, result)
+	})
+
+	t.Run("offset equals length returns empty", func(t *testing.T) {
+		result := applyPagination(items, 10, 5)
+		assert.Equal(t, []int{}, result)
+	})
+}
+
 func TestGetClientFromContext_DebugPropagation(t *testing.T) {
 	t.Run("propagates debug flag to client", func(t *testing.T) {
 		// Create a mock factory that returns a real client we can inspect

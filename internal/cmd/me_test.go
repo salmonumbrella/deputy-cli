@@ -111,6 +111,8 @@ func TestMeTimesheetsCommand(t *testing.T) {
 	require.NoError(t, err)
 	output := buf.String()
 	assert.Contains(t, output, "List my timesheets")
+	assert.Contains(t, output, "--limit")
+	assert.Contains(t, output, "--offset")
 }
 
 // TestMeRostersCommand verifies the rosters command is registered
@@ -126,6 +128,8 @@ func TestMeRostersCommand(t *testing.T) {
 	require.NoError(t, err)
 	output := buf.String()
 	assert.Contains(t, output, "List my rosters")
+	assert.Contains(t, output, "--limit")
+	assert.Contains(t, output, "--offset")
 }
 
 // TestMeLeaveCommand verifies the leave command is registered
@@ -141,6 +145,8 @@ func TestMeLeaveCommand(t *testing.T) {
 	require.NoError(t, err)
 	output := buf.String()
 	assert.Contains(t, output, "List my leave requests")
+	assert.Contains(t, output, "--limit")
+	assert.Contains(t, output, "--offset")
 }
 
 // TestMeCommand_WithMockClient tests command output using mock HTTP server.

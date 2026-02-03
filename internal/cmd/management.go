@@ -39,6 +39,7 @@ func newMemoCmd() *cobra.Command {
 
 func newMemoListCmd() *cobra.Command {
 	var companyID int
+	var limit, offset int
 
 	cmd := &cobra.Command{
 		Use:   "list",
@@ -58,9 +59,14 @@ func newMemoListCmd() *cobra.Command {
 				return err
 			}
 
+			// Apply client-side pagination
+			memos = applyPagination(memos, offset, limit)
+
 			format := outfmt.GetFormat(cmd.Context())
 			if format == "json" {
-				f := outfmt.New(cmd.Context())
+				ctx := outfmt.WithLimit(cmd.Context(), limit)
+				ctx = outfmt.WithOffset(ctx, offset)
+				f := outfmt.New(ctx)
 				return f.OutputList(memos)
 			}
 
@@ -84,6 +90,8 @@ func newMemoListCmd() *cobra.Command {
 	}
 
 	cmd.Flags().IntVar(&companyID, "company", 0, "Company ID (required)")
+	cmd.Flags().IntVar(&limit, "limit", 0, "Maximum number of results (0 = unlimited)")
+	cmd.Flags().IntVar(&offset, "offset", 0, "Number of results to skip")
 
 	return cmd
 }
@@ -159,6 +167,7 @@ func newJournalCmd() *cobra.Command {
 
 func newJournalListCmd() *cobra.Command {
 	var employeeID int
+	var limit, offset int
 
 	cmd := &cobra.Command{
 		Use:   "list",
@@ -178,9 +187,14 @@ func newJournalListCmd() *cobra.Command {
 				return err
 			}
 
+			// Apply client-side pagination
+			journals = applyPagination(journals, offset, limit)
+
 			format := outfmt.GetFormat(cmd.Context())
 			if format == "json" {
-				f := outfmt.New(cmd.Context())
+				ctx := outfmt.WithLimit(cmd.Context(), limit)
+				ctx = outfmt.WithOffset(ctx, offset)
+				f := outfmt.New(ctx)
 				return f.OutputList(journals)
 			}
 
@@ -204,6 +218,8 @@ func newJournalListCmd() *cobra.Command {
 	}
 
 	cmd.Flags().IntVar(&employeeID, "employee", 0, "Employee ID (required)")
+	cmd.Flags().IntVar(&limit, "limit", 0, "Maximum number of results (0 = unlimited)")
+	cmd.Flags().IntVar(&offset, "offset", 0, "Number of results to skip")
 
 	return cmd
 }

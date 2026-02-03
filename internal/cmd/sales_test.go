@@ -121,6 +121,8 @@ func TestSalesListCommand(t *testing.T) {
 	output := buf.String()
 	assert.Contains(t, output, "List sales data")
 	assert.Contains(t, output, "--company")
+	assert.Contains(t, output, "--limit")
+	assert.Contains(t, output, "--offset")
 }
 
 // TestSalesListCommand_RequiresAuth tests that list fails without credentials.
@@ -407,5 +409,96 @@ func TestSalesCommand_WithMockClient(t *testing.T) {
 		output := buf.String()
 		assert.Contains(t, output, "\"Id\": 999")
 		assert.Contains(t, output, "\"Company\": 1")
+	})
+
+	t.Run("list with limit returns limited results", func(t *testing.T) {
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(w).Encode([]api.SalesData{
+				{Id: 1, Company: 1, Timestamp: 1705326000, Value: 100.00, Type: "revenue"},
+				{Id: 2, Company: 1, Timestamp: 1705340400, Value: 200.00, Type: "revenue"},
+				{Id: 3, Company: 1, Timestamp: 1705354800, Value: 300.00, Type: "revenue"},
+			})
+		}))
+		defer server.Close()
+
+		client := newTestClient(server.URL, "test-token")
+		mockFactory := &MockClientFactory{client: client}
+
+		buf := &bytes.Buffer{}
+		ctx := WithClientFactory(context.Background(), mockFactory)
+		ctx = iocontext.WithIO(ctx, &iocontext.IO{Out: buf, ErrOut: buf})
+
+		cmd := newSalesListCmd()
+		cmd.SetContext(ctx)
+		cmd.SetOut(buf)
+		cmd.SetArgs([]string{"--limit", "2"})
+		err := cmd.Execute()
+
+		require.NoError(t, err)
+		output := buf.String()
+		assert.Contains(t, output, "100.00")
+		assert.Contains(t, output, "200.00")
+		assert.NotContains(t, output, "300.00")
+	})
+
+	t.Run("list with offset skips results", func(t *testing.T) {
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(w).Encode([]api.SalesData{
+				{Id: 1, Company: 1, Timestamp: 1705326000, Value: 100.00, Type: "revenue"},
+				{Id: 2, Company: 1, Timestamp: 1705340400, Value: 200.00, Type: "revenue"},
+				{Id: 3, Company: 1, Timestamp: 1705354800, Value: 300.00, Type: "revenue"},
+			})
+		}))
+		defer server.Close()
+
+		client := newTestClient(server.URL, "test-token")
+		mockFactory := &MockClientFactory{client: client}
+
+		buf := &bytes.Buffer{}
+		ctx := WithClientFactory(context.Background(), mockFactory)
+		ctx = iocontext.WithIO(ctx, &iocontext.IO{Out: buf, ErrOut: buf})
+
+		cmd := newSalesListCmd()
+		cmd.SetContext(ctx)
+		cmd.SetOut(buf)
+		cmd.SetArgs([]string{"--offset", "1"})
+		err := cmd.Execute()
+
+		require.NoError(t, err)
+		output := buf.String()
+		assert.NotContains(t, output, "100.00")
+		assert.Contains(t, output, "200.00")
+		assert.Contains(t, output, "300.00")
+	})
+
+	t.Run("list JSON includes limit/offset metadata", func(t *testing.T) {
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(w).Encode([]api.SalesData{
+				{Id: 1, Company: 1, Timestamp: 1705326000, Value: 100.00, Type: "revenue"},
+			})
+		}))
+		defer server.Close()
+
+		client := newTestClient(server.URL, "test-token")
+		mockFactory := &MockClientFactory{client: client}
+
+		buf := &bytes.Buffer{}
+		ctx := WithClientFactory(context.Background(), mockFactory)
+		ctx = iocontext.WithIO(ctx, &iocontext.IO{Out: buf, ErrOut: buf})
+		ctx = outfmt.WithFormat(ctx, "json")
+
+		cmd := newSalesListCmd()
+		cmd.SetContext(ctx)
+		cmd.SetOut(buf)
+		cmd.SetArgs([]string{"--limit", "10", "--offset", "5"})
+		err := cmd.Execute()
+
+		require.NoError(t, err)
+		output := buf.String()
+		assert.Contains(t, output, `"limit": 10`)
+		assert.Contains(t, output, `"offset": 5`)
 	})
 }
