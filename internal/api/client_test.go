@@ -381,3 +381,67 @@ func TestSanitizeErrorResponse_PopulatesCodeAndRetryable(t *testing.T) {
 		})
 	}
 }
+
+func TestSanitizeErrorResponse_ParsesStructuredError(t *testing.T) {
+	body := []byte(`{"error":{"code":400,"message":"Invalid search field Employee"}}`)
+	err := sanitizeErrorResponse(400, body, false)
+
+	var apiErr *APIError
+	require.ErrorAs(t, err, &apiErr)
+	assert.Contains(t, apiErr.Message, "Invalid search field Employee")
+}
+
+func TestSanitizeErrorResponse_StructuredErrorVariants(t *testing.T) {
+	tests := []struct {
+		name            string
+		statusCode      int
+		body            []byte
+		debug           bool
+		expectedMessage string
+	}{
+		{
+			name:            "structured error takes priority over debug mode",
+			statusCode:      400,
+			body:            []byte(`{"error":{"code":400,"message":"Field validation failed"}}`),
+			debug:           true,
+			expectedMessage: "Field validation failed",
+		},
+		{
+			name:            "structured error with different status code",
+			statusCode:      422,
+			body:            []byte(`{"error":{"code":422,"message":"Missing required parameter: employee_id"}}`),
+			debug:           false,
+			expectedMessage: "Missing required parameter: employee_id",
+		},
+		{
+			name:            "falls back to generic when error message is empty",
+			statusCode:      400,
+			body:            []byte(`{"error":{"code":400,"message":""}}`),
+			debug:           false,
+			expectedMessage: "bad request",
+		},
+		{
+			name:            "falls back to generic on malformed JSON",
+			statusCode:      400,
+			body:            []byte(`{malformed json`),
+			debug:           false,
+			expectedMessage: "bad request",
+		},
+		{
+			name:            "falls back to generic when error object missing",
+			statusCode:      401,
+			body:            []byte(`{"status":"error","reason":"unauthorized"}`),
+			debug:           false,
+			expectedMessage: "unauthorized",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := sanitizeErrorResponse(tt.statusCode, tt.body, tt.debug)
+			var apiErr *APIError
+			require.ErrorAs(t, err, &apiErr)
+			assert.Equal(t, tt.expectedMessage, apiErr.Message)
+		})
+	}
+}

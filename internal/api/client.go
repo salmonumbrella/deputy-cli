@@ -50,41 +50,53 @@ func (c *Client) SetHTTPClient(httpClient *http.Client) {
 const maxErrorBodyLen = 500
 
 // sanitizeErrorResponse creates an error message from an API error response.
-// In non-debug mode, it returns a generic message with just the status code.
-// In debug mode, it includes the response body (truncated to maxErrorBodyLen characters).
+// It first attempts to parse structured API errors with the format {"error":{"code":N,"message":"..."}}.
+// In debug mode with non-structured errors, it includes the response body (truncated to maxErrorBodyLen characters).
+// Otherwise, it returns a generic message based on the status code.
 func sanitizeErrorResponse(statusCode int, body []byte, debug bool) error {
 	code := CodeFromStatus(statusCode)
 	retryable := IsRetryable(statusCode)
 
-	// Map common status codes to generic messages
-	genericMessages := map[int]string{
-		400: "bad request",
-		401: "unauthorized",
-		403: "forbidden",
-		404: "not found",
-		405: "method not allowed",
-		409: "conflict",
-		422: "unprocessable entity",
-		429: "too many requests",
-		500: "server error",
-		502: "bad gateway",
-		503: "service unavailable",
-		504: "gateway timeout",
+	// Try to parse structured error from API
+	var structuredErr struct {
+		Error struct {
+			Code    int    `json:"code"`
+			Message string `json:"message"`
+		} `json:"error"`
 	}
 
 	var message string
-	if debug && len(body) > 0 {
+	if err := json.Unmarshal(body, &structuredErr); err == nil && structuredErr.Error.Message != "" {
+		message = structuredErr.Error.Message
+	} else if debug && len(body) > 0 {
 		bodyStr := string(body)
 		if len(bodyStr) > maxErrorBodyLen {
 			bodyStr = bodyStr[:maxErrorBodyLen] + "..."
 		}
 		message = bodyStr
-	} else if msg, ok := genericMessages[statusCode]; ok {
-		message = msg
-	} else if statusCode >= 500 {
-		message = "server error"
 	} else {
-		message = "request failed"
+		// Fall back to generic messages
+		genericMessages := map[int]string{
+			400: "bad request",
+			401: "unauthorized",
+			403: "forbidden",
+			404: "not found",
+			405: "method not allowed",
+			409: "conflict",
+			422: "unprocessable entity",
+			429: "too many requests",
+			500: "server error",
+			502: "bad gateway",
+			503: "service unavailable",
+			504: "gateway timeout",
+		}
+		if msg, ok := genericMessages[statusCode]; ok {
+			message = msg
+		} else if statusCode >= 500 {
+			message = "server error"
+		} else {
+			message = "request failed"
+		}
 	}
 
 	return &APIError{
