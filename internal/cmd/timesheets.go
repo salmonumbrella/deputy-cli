@@ -16,7 +16,7 @@ import (
 func newTimesheetsCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "timesheets",
-		Aliases: []string{"timesheet", "ts"},
+		Aliases: []string{"timesheet", "ts", "t"},
 		Short:   "Manage timesheets",
 		Long: `Manage timesheets including viewing, clocking in/out, and pay rules.
 

@@ -15,7 +15,7 @@ import (
 func newRostersCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "rosters",
-		Aliases: []string{"roster", "shifts"},
+		Aliases: []string{"roster", "shifts", "shift", "r"},
 		Short:   "Manage rosters/shifts",
 	}
 

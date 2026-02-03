@@ -15,7 +15,7 @@ import (
 func newWebhooksCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "webhooks",
-		Aliases: []string{"webhook"},
+		Aliases: []string{"webhook", "wh"},
 		Short:   "Manage webhooks",
 	}
 

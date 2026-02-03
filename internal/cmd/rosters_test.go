@@ -90,7 +90,7 @@ func TestRostersCommand_HasAllSubcommands(t *testing.T) {
 
 // TestRostersCommand_Aliases verifies the command aliases work
 func TestRostersCommand_Aliases(t *testing.T) {
-	aliases := []string{"roster", "shifts"}
+	aliases := []string{"roster", "shifts", "shift", "r"}
 
 	for _, alias := range aliases {
 		t.Run(alias, func(t *testing.T) {

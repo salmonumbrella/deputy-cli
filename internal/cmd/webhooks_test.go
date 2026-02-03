@@ -90,7 +90,7 @@ func TestWebhooksCommand_HasExpectedSubcommands(t *testing.T) {
 
 // TestWebhooksCommand_Aliases verifies the command aliases work
 func TestWebhooksCommand_Aliases(t *testing.T) {
-	aliases := []string{"webhook"}
+	aliases := []string{"webhook", "wh"}
 
 	for _, alias := range aliases {
 		t.Run(alias, func(t *testing.T) {

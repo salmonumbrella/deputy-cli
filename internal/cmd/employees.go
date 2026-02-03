@@ -15,7 +15,7 @@ import (
 func newEmployeesCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "employees",
-		Aliases: []string{"employee", "emp"},
+		Aliases: []string{"employee", "emp", "e"},
 		Short:   "Manage employees",
 	}
 

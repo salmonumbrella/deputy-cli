@@ -91,7 +91,7 @@ func TestTimesheetsCommand_HasAllSubcommands(t *testing.T) {
 
 // TestTimesheetsCommand_Aliases verifies the command aliases work
 func TestTimesheetsCommand_Aliases(t *testing.T) {
-	aliases := []string{"timesheet", "ts"}
+	aliases := []string{"timesheet", "ts", "t"}
 
 	for _, alias := range aliases {
 		t.Run(alias, func(t *testing.T) {

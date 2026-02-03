@@ -15,7 +15,7 @@ import (
 func newDepartmentsCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "departments",
-		Aliases: []string{"department", "dept", "opunit"},
+		Aliases: []string{"department", "dept", "opunit", "d", "areas", "area"},
 		Short:   "Manage departments (operational units)",
 	}
 

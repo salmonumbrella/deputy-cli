@@ -127,7 +127,7 @@ func TestEmployeesCommand_HasAllSubcommands(t *testing.T) {
 
 // TestEmployeesCommand_Aliases verifies the command aliases work
 func TestEmployeesCommand_Aliases(t *testing.T) {
-	aliases := []string{"employee", "emp"}
+	aliases := []string{"employee", "emp", "e"}
 
 	for _, alias := range aliases {
 		t.Run(alias, func(t *testing.T) {
