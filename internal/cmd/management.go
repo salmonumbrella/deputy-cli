@@ -61,7 +61,7 @@ func newMemoListCmd() *cobra.Command {
 			format := outfmt.GetFormat(cmd.Context())
 			if format == "json" {
 				f := outfmt.New(cmd.Context())
-				return f.Output(memos)
+				return f.OutputList(memos)
 			}
 
 			f := outfmt.New(cmd.Context())
@@ -181,7 +181,7 @@ func newJournalListCmd() *cobra.Command {
 			format := outfmt.GetFormat(cmd.Context())
 			if format == "json" {
 				f := outfmt.New(cmd.Context())
-				return f.Output(journals)
+				return f.OutputList(journals)
 			}
 
 			f := outfmt.New(cmd.Context())
