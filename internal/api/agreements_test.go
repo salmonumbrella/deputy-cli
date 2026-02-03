@@ -24,7 +24,7 @@ func TestAgreementsService_ListByEmployee(t *testing.T) {
 		require.NoError(t, json.Unmarshal(body, &payload))
 		search := payload["search"].(map[string]interface{})
 		cond := search["s1"].(map[string]interface{})
-		assert.Equal(t, "Employee", cond["field"])
+		assert.Equal(t, "EmployeeId", cond["field"], "Should use EmployeeId not Employee")
 		assert.Equal(t, "eq", cond["type"])
 		assert.Equal(t, float64(42), cond["data"])
 
@@ -54,9 +54,9 @@ func TestAgreementsService_ListByEmployee_ActiveOnly(t *testing.T) {
 		require.NoError(t, json.Unmarshal(body, &payload))
 		search := payload["search"].(map[string]interface{})
 
-		// Verify s1: Employee filter
+		// Verify s1: EmployeeId filter
 		s1 := search["s1"].(map[string]interface{})
-		assert.Equal(t, "Employee", s1["field"])
+		assert.Equal(t, "EmployeeId", s1["field"], "Should use EmployeeId not Employee")
 		assert.Equal(t, "eq", s1["type"])
 		assert.Equal(t, float64(42), s1["data"])
 

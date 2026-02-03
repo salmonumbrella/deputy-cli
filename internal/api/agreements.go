@@ -28,7 +28,7 @@ func (c *Client) Agreements() *AgreementsService {
 // ListByEmployee returns agreements for a specific employee.
 func (s *AgreementsService) ListByEmployee(ctx context.Context, employeeID int, activeOnly bool) ([]EmployeeAgreement, error) {
 	search := map[string]interface{}{
-		"s1": map[string]interface{}{"field": "Employee", "type": "eq", "data": employeeID},
+		"s1": map[string]interface{}{"field": "EmployeeId", "type": "eq", "data": employeeID},
 	}
 	if activeOnly {
 		search["s2"] = map[string]interface{}{"field": "Active", "type": "eq", "data": true}
