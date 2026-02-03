@@ -118,7 +118,19 @@ func (f *Formatter) outputJQFiltered(data any, queryStr string) error {
 		return fmt.Errorf("invalid jq query: %w", err)
 	}
 
-	iter := query.Run(data)
+	// gojq requires JSON-compatible types (maps, slices of interface{}, etc.)
+	// not Go struct types. Serialize to JSON and back to get compatible types.
+	jsonBytes, err := json.Marshal(data)
+	if err != nil {
+		return fmt.Errorf("failed to serialize data for jq: %w", err)
+	}
+
+	var jsonData any
+	if err := json.Unmarshal(jsonBytes, &jsonData); err != nil {
+		return fmt.Errorf("failed to prepare data for jq: %w", err)
+	}
+
+	iter := query.Run(jsonData)
 	for {
 		v, ok := iter.Next()
 		if !ok {

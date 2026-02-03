@@ -390,3 +390,79 @@ func TestLimitOffsetContext(t *testing.T) {
 	assert.True(t, ok)
 	assert.Equal(t, 25, offset)
 }
+
+// TestFormatter_OutputList_WithQuery tests that JQ queries work on OutputList
+// which wraps data with {items: [...], meta: {...}} structure.
+// This specifically tests that Go struct types are properly serialized before
+// being passed to gojq (which requires JSON-compatible types).
+func TestFormatter_OutputList_WithQuery(t *testing.T) {
+	type Employee struct {
+		Id   int    `json:"id"`
+		Name string `json:"name"`
+	}
+
+	tests := []struct {
+		name     string
+		query    string
+		expected string
+	}{
+		{
+			name:     "items length",
+			query:    ".items | length",
+			expected: "2\n",
+		},
+		{
+			name:     "meta count",
+			query:    ".meta.count",
+			expected: "2\n",
+		},
+		{
+			name:     "first item id",
+			query:    ".items[0].id",
+			expected: "1\n",
+		},
+		{
+			name:     "all names",
+			query:    ".items[].name",
+			expected: "\"Alice\"\n\"Bob\"\n",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			out := &bytes.Buffer{}
+			ctx := WithFormat(testContext(out), "json")
+			ctx = WithQuery(ctx, tt.query)
+			f := New(ctx)
+
+			data := []Employee{
+				{Id: 1, Name: "Alice"},
+				{Id: 2, Name: "Bob"},
+			}
+
+			err := f.OutputList(data)
+			require.NoError(t, err)
+			assert.Equal(t, tt.expected, out.String())
+		})
+	}
+}
+
+// TestFormatter_JSONWithQuery_GoStruct tests that JQ queries work on Go structs
+// (not just map[string]any)
+func TestFormatter_JSONWithQuery_GoStruct(t *testing.T) {
+	type Person struct {
+		Name string `json:"name"`
+		Age  int    `json:"age"`
+	}
+
+	out := &bytes.Buffer{}
+	ctx := WithFormat(testContext(out), "json")
+	ctx = WithQuery(ctx, ".name")
+	f := New(ctx)
+
+	data := Person{Name: "Alice", Age: 30}
+	err := f.Output(data)
+	require.NoError(t, err)
+
+	assert.Equal(t, "\"Alice\"\n", out.String())
+}
