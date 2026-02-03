@@ -3,6 +3,7 @@ package outfmt
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"testing"
 
 	"github.com/salmonumbrella/deputy-cli/internal/iocontext"
@@ -215,4 +216,93 @@ func TestFormatter_EndTableWithoutStart(t *testing.T) {
 	// Should not panic when EndTable is called without StartTable
 	f.EndTable()
 	assert.Empty(t, out.String())
+}
+
+func TestFormatter_OutputWithMeta(t *testing.T) {
+	out := &bytes.Buffer{}
+	ctx := WithFormat(testContext(out), "json")
+	f := New(ctx)
+
+	data := []map[string]any{
+		{"Id": 1, "Name": "Test"},
+		{"Id": 2, "Name": "Test2"},
+	}
+
+	err := f.OutputWithMeta(data, map[string]any{
+		"count":  2,
+		"limit":  10,
+		"offset": 0,
+	})
+	require.NoError(t, err)
+
+	var result map[string]any
+	err = json.Unmarshal(out.Bytes(), &result)
+	require.NoError(t, err)
+
+	assert.Contains(t, result, "data")
+	assert.Contains(t, result, "_meta")
+	meta := result["_meta"].(map[string]any)
+	assert.Equal(t, float64(2), meta["count"])
+	assert.Equal(t, float64(10), meta["limit"])
+	assert.Equal(t, float64(0), meta["offset"])
+}
+
+func TestFormatter_OutputWithMeta_RawMode(t *testing.T) {
+	out := &bytes.Buffer{}
+	ctx := WithFormat(testContext(out), "json")
+	ctx = WithRaw(ctx, true)
+	f := New(ctx)
+
+	data := []map[string]any{
+		{"id": 1, "name": "Alice"},
+		{"id": 2, "name": "Bob"},
+	}
+
+	err := f.OutputWithMeta(data, map[string]any{
+		"count":  2,
+		"limit":  10,
+		"offset": 0,
+	})
+	require.NoError(t, err)
+
+	// In raw mode, should output JSON lines without meta wrapper
+	lines := bytes.Split(bytes.TrimSpace(out.Bytes()), []byte("\n"))
+	require.Len(t, lines, 2)
+	assert.Contains(t, string(lines[0]), "\"id\":1")
+	assert.Contains(t, string(lines[1]), "\"id\":2")
+}
+
+func TestAutoMeta(t *testing.T) {
+	data := []int{1, 2, 3}
+	meta := AutoMeta(data)
+	assert.Equal(t, 3, meta["count"])
+}
+
+func TestAutoMeta_PointerToSlice(t *testing.T) {
+	data := []string{"a", "b"}
+	meta := AutoMeta(&data)
+	assert.Equal(t, 2, meta["count"])
+}
+
+func TestAutoMeta_EmptySlice(t *testing.T) {
+	data := []int{}
+	meta := AutoMeta(data)
+	assert.Equal(t, 0, meta["count"])
+}
+
+func TestAutoMeta_Nil(t *testing.T) {
+	meta := AutoMeta(nil)
+	assert.Empty(t, meta)
+}
+
+func TestAutoMeta_NilPointer(t *testing.T) {
+	var data *[]int
+	meta := AutoMeta(data)
+	assert.Empty(t, meta)
+}
+
+func TestAutoMeta_NonSlice(t *testing.T) {
+	data := map[string]string{"key": "value"}
+	meta := AutoMeta(data)
+	assert.Empty(t, meta)
 }

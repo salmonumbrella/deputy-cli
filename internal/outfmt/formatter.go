@@ -36,6 +36,43 @@ func (f *Formatter) Output(data any) error {
 	return fmt.Errorf("use table methods for text output")
 }
 
+// OutputWithMeta outputs data wrapped with metadata for agent consumption.
+// In raw mode, outputs data without wrapper (raw mode is for JSON Lines).
+func (f *Formatter) OutputWithMeta(data any, meta map[string]any) error {
+	if IsRaw(f.ctx) {
+		return f.Output(data) // Raw mode doesn't get meta wrapper
+	}
+
+	wrapped := map[string]any{
+		"data":  data,
+		"_meta": meta,
+	}
+	return f.Output(wrapped)
+}
+
+// AutoMeta generates metadata for slices automatically.
+func AutoMeta(data any) map[string]any {
+	meta := map[string]any{}
+
+	if data == nil {
+		return meta
+	}
+
+	rv := reflect.ValueOf(data)
+	for rv.Kind() == reflect.Pointer {
+		if rv.IsNil() {
+			return meta
+		}
+		rv = rv.Elem()
+	}
+
+	if rv.Kind() == reflect.Slice || rv.Kind() == reflect.Array {
+		meta["count"] = rv.Len()
+	}
+
+	return meta
+}
+
 func (f *Formatter) outputJSON(data any) error {
 	query := GetQuery(f.ctx)
 	if query != "" {
