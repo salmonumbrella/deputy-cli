@@ -89,7 +89,7 @@ func newEmployeesGetCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "get <id>",
 		Short: "Get employee details",
-		Args:  cobra.ExactArgs(1),
+		Args:  RequireArg("id"),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			id, err := strconv.Atoi(args[0])
 			if err != nil {
@@ -195,7 +195,7 @@ func newEmployeesUpdateCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "update <id>",
 		Short: "Update an employee",
-		Args:  cobra.ExactArgs(1),
+		Args:  RequireArg("id"),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			id, err := strconv.Atoi(args[0])
 			if err != nil {
@@ -246,7 +246,7 @@ func newEmployeesTerminateCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "terminate <id>",
 		Short: "Terminate an employee",
-		Args:  cobra.ExactArgs(1),
+		Args:  RequireArg("id"),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			id, err := strconv.Atoi(args[0])
 			if err != nil {
@@ -289,7 +289,7 @@ func newEmployeesInviteCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "invite <id>",
 		Short: "Send invitation to employee",
-		Args:  cobra.ExactArgs(1),
+		Args:  RequireArg("id"),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			id, err := strconv.Atoi(args[0])
 			if err != nil {
@@ -318,7 +318,7 @@ func newEmployeesAssignLocationCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "assign-location <employee-id>",
 		Short: "Assign employee to a location",
-		Args:  cobra.ExactArgs(1),
+		Args:  RequireArg("employee-id"),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			employeeID, err := strconv.Atoi(args[0])
 			if err != nil {
@@ -354,7 +354,7 @@ func newEmployeesRemoveLocationCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "remove-location <employee-id>",
 		Short: "Remove employee from a location",
-		Args:  cobra.ExactArgs(1),
+		Args:  RequireArg("employee-id"),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			employeeID, err := strconv.Atoi(args[0])
 			if err != nil {
@@ -388,7 +388,7 @@ func newEmployeesReactivateCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "reactivate <id>",
 		Short: "Reactivate a terminated employee",
-		Args:  cobra.ExactArgs(1),
+		Args:  RequireArg("id"),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			id, err := strconv.Atoi(args[0])
 			if err != nil {
@@ -417,7 +417,7 @@ func newEmployeesDeleteCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "delete <id>",
 		Short: "Delete an employee account",
-		Args:  cobra.ExactArgs(1),
+		Args:  RequireArg("id"),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			id, err := strconv.Atoi(args[0])
 			if err != nil {
@@ -454,7 +454,7 @@ func newEmployeesAddUnavailabilityCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "add-unavailability <employee-id>",
 		Short: "Add unavailability for employee",
-		Args:  cobra.ExactArgs(1),
+		Args:  RequireArg("employee-id"),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			employeeID, err := strconv.Atoi(args[0])
 			if err != nil {

@@ -48,7 +48,7 @@ func TestListShortcut(t *testing.T) {
 		listCmd, _, err := root.Find([]string{"list"})
 		require.NoError(t, err)
 
-		// cobra.ExactArgs(1) should be set
+		// RequireArg("resource") should be set
 		assert.NotNil(t, listCmd.Args)
 	})
 
@@ -83,7 +83,7 @@ func TestGetShortcut(t *testing.T) {
 		getCmd, _, err := root.Find([]string{"get"})
 		require.NoError(t, err)
 
-		// cobra.ExactArgs(2) should be set
+		// RequireArgs("resource", "id") should be set
 		assert.NotNil(t, getCmd.Args)
 	})
 
@@ -106,6 +106,7 @@ func TestResourceMap(t *testing.T) {
 		{"employees", "employees"},
 		{"employee", "employees"},
 		{"emp", "employees"},
+		{"e", "employees"},
 		// Locations
 		{"locations", "locations"},
 		{"location", "locations"},
@@ -114,20 +115,26 @@ func TestResourceMap(t *testing.T) {
 		{"timesheets", "timesheets"},
 		{"timesheet", "timesheets"},
 		{"ts", "timesheets"},
+		{"t", "timesheets"},
 		// Rosters
 		{"rosters", "rosters"},
 		{"roster", "rosters"},
 		{"shifts", "rosters"},
+		{"shift", "rosters"},
+		{"r", "rosters"},
 		// Departments
 		{"departments", "departments"},
 		{"department", "departments"},
 		{"dept", "departments"},
+		{"area", "departments"},
 		{"areas", "departments"},
+		{"d", "departments"},
 		// Leave
 		{"leave", "leave"},
 		// Webhooks
 		{"webhooks", "webhooks"},
 		{"webhook", "webhooks"},
+		{"wh", "webhooks"},
 		// Sales
 		{"sales", "sales"},
 		{"sale", "sales"},

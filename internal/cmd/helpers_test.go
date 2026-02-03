@@ -6,6 +6,7 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -515,5 +516,154 @@ func TestGetClientFromContext_DebugPropagation(t *testing.T) {
 		require.NoError(t, err)
 		assert.NotNil(t, client)
 		// SetDebug(false) is called - debug mode is disabled by default
+	})
+}
+
+func TestRequireArg(t *testing.T) {
+	// Helper to create a test command with a given Args validator
+	makeCmd := func(args cobra.PositionalArgs) *cobra.Command {
+		return &cobra.Command{
+			Use:  "test <id>",
+			Args: args,
+		}
+	}
+
+	t.Run("accepts exactly one argument", func(t *testing.T) {
+		cmd := makeCmd(RequireArg("id"))
+		err := cmd.Args(cmd, []string{"123"})
+		assert.NoError(t, err)
+	})
+
+	t.Run("rejects zero arguments with descriptive error", func(t *testing.T) {
+		cmd := makeCmd(RequireArg("id"))
+		err := cmd.Args(cmd, []string{})
+
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "missing required argument: <id>")
+		assert.Contains(t, err.Error(), "Hint: Run 'test --help' for usage")
+	})
+
+	t.Run("rejects too many arguments with descriptive error", func(t *testing.T) {
+		cmd := makeCmd(RequireArg("id"))
+		err := cmd.Args(cmd, []string{"123", "456"})
+
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "too many arguments, expected <id>")
+		assert.Contains(t, err.Error(), "Hint: Run 'test --help' for usage")
+	})
+
+	t.Run("uses custom argument name in error", func(t *testing.T) {
+		cmd := makeCmd(RequireArg("employee-id"))
+		err := cmd.Args(cmd, []string{})
+
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "missing required argument: <employee-id>")
+	})
+
+	t.Run("includes full command path in hint", func(t *testing.T) {
+		parent := &cobra.Command{Use: "deputy"}
+		child := &cobra.Command{
+			Use: "employees",
+		}
+		grandchild := &cobra.Command{
+			Use:  "get <id>",
+			Args: RequireArg("id"),
+		}
+		parent.AddCommand(child)
+		child.AddCommand(grandchild)
+
+		err := grandchild.Args(grandchild, []string{})
+
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "Hint: Run 'deputy employees get --help' for usage")
+	})
+}
+
+func TestRequireArgs(t *testing.T) {
+	// Helper to create a test command with a given Args validator
+	makeCmd := func(args cobra.PositionalArgs) *cobra.Command {
+		return &cobra.Command{
+			Use:  "test <resource> <id>",
+			Args: args,
+		}
+	}
+
+	t.Run("accepts exactly the specified number of arguments", func(t *testing.T) {
+		cmd := makeCmd(RequireArgs("resource", "id"))
+		err := cmd.Args(cmd, []string{"Employee", "123"})
+		assert.NoError(t, err)
+	})
+
+	t.Run("rejects zero arguments listing all missing", func(t *testing.T) {
+		cmd := makeCmd(RequireArgs("resource", "id"))
+		err := cmd.Args(cmd, []string{})
+
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "missing required argument(s): <resource> <id>")
+		assert.Contains(t, err.Error(), "Hint: Run 'test --help' for usage")
+	})
+
+	t.Run("rejects one argument when two required", func(t *testing.T) {
+		cmd := makeCmd(RequireArgs("resource", "id"))
+		err := cmd.Args(cmd, []string{"Employee"})
+
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "missing required argument(s): <id>")
+		assert.Contains(t, err.Error(), "Hint: Run 'test --help' for usage")
+	})
+
+	t.Run("rejects too many arguments", func(t *testing.T) {
+		cmd := makeCmd(RequireArgs("resource", "id"))
+		err := cmd.Args(cmd, []string{"Employee", "123", "extra"})
+
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "too many arguments, expected <resource> <id>")
+		assert.Contains(t, err.Error(), "Hint: Run 'test --help' for usage")
+	})
+
+	t.Run("works with single argument", func(t *testing.T) {
+		cmd := makeCmd(RequireArgs("id"))
+
+		// Accepts one arg
+		err := cmd.Args(cmd, []string{"123"})
+		assert.NoError(t, err)
+
+		// Rejects zero args
+		err = cmd.Args(cmd, []string{})
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "missing required argument(s): <id>")
+	})
+
+	t.Run("works with three arguments", func(t *testing.T) {
+		cmd := &cobra.Command{
+			Use:  "test <a> <b> <c>",
+			Args: RequireArgs("a", "b", "c"),
+		}
+
+		// Accepts three args
+		err := cmd.Args(cmd, []string{"1", "2", "3"})
+		assert.NoError(t, err)
+
+		// Missing last two
+		err = cmd.Args(cmd, []string{"1"})
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "missing required argument(s): <b> <c>")
+	})
+}
+
+func TestFormatArgNames(t *testing.T) {
+	t.Run("formats single name", func(t *testing.T) {
+		result := formatArgNames([]string{"id"})
+		assert.Equal(t, "<id>", result)
+	})
+
+	t.Run("formats multiple names", func(t *testing.T) {
+		result := formatArgNames([]string{"resource", "id"})
+		assert.Equal(t, "<resource> <id>", result)
+	})
+
+	t.Run("handles empty slice", func(t *testing.T) {
+		result := formatArgNames([]string{})
+		assert.Equal(t, "", result)
 	})
 }

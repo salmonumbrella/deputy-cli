@@ -57,7 +57,7 @@ func newResourceInfoCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "info <ResourceName>",
 		Short: "Get schema information for a resource",
-		Args:  cobra.ExactArgs(1),
+		Args:  RequireArg("ResourceName"),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			resourceName := args[0]
 
@@ -138,7 +138,7 @@ Examples:
   deputy resource query Roster --filter "StartTime>2024-01-01" --join Employee --sort StartTime --limit 100
   deputy resource query Leave --filter "Status=1" --join Employee
   one_month_ago=$(date -v-1m +%Y-%m-%d); deputy resource query Timesheet --filter "Date>=$one_month_ago" --raw`,
-		Args: cobra.ExactArgs(1),
+		Args: RequireArg("ResourceName"),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			resourceName := args[0]
 
@@ -214,7 +214,7 @@ func newResourceGetCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "get <ResourceName> <id>",
 		Short: "Get a specific resource by ID",
-		Args:  cobra.ExactArgs(2),
+		Args:  RequireArgs("ResourceName", "id"),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			resourceName := args[0]
 			id, err := strconv.Atoi(args[1])

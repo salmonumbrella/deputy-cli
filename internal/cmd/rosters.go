@@ -89,7 +89,7 @@ func newRostersGetCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "get <id>",
 		Short: "Get roster details",
-		Args:  cobra.ExactArgs(1),
+		Args:  RequireArg("id"),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			id, err := strconv.Atoi(args[0])
 			if err != nil {
@@ -350,7 +350,7 @@ or by using the resource API to update roster assignments.
 
 Example:
   deputy rosters swap 12345`,
-		Args: cobra.ExactArgs(1),
+		Args: RequireArg("roster-id"),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			id, err := strconv.Atoi(args[0])
 			if err != nil {

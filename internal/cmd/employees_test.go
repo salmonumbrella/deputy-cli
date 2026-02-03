@@ -207,7 +207,7 @@ func TestEmployeesGetCommand_RequiresIDArgument(t *testing.T) {
 	err := root.Execute()
 
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "accepts 1 arg(s)")
+	assert.Contains(t, err.Error(), "missing required argument")
 }
 
 // TestEmployeesGetCommand_InvalidID tests that get validates the ID is numeric.
@@ -304,7 +304,7 @@ func TestEmployeesUpdateCommand_RequiresIDArgument(t *testing.T) {
 	err := root.Execute()
 
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "accepts 1 arg(s)")
+	assert.Contains(t, err.Error(), "missing required argument")
 }
 
 // TestEmployeesTerminateCommand verifies the terminate command is registered
@@ -335,7 +335,7 @@ func TestEmployeesTerminateCommand_RequiresIDArgument(t *testing.T) {
 	err := root.Execute()
 
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "accepts 1 arg(s)")
+	assert.Contains(t, err.Error(), "missing required argument")
 }
 
 // TestEmployeesTerminateCommand_MissingDateFlag tests validation for missing date flag.
@@ -380,7 +380,7 @@ func TestEmployeesInviteCommand_RequiresIDArgument(t *testing.T) {
 	err := root.Execute()
 
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "accepts 1 arg(s)")
+	assert.Contains(t, err.Error(), "missing required argument")
 }
 
 // TestEmployeesAssignLocationCommand verifies the assign-location command is registered
@@ -411,7 +411,7 @@ func TestEmployeesAssignLocationCommand_RequiresIDArgument(t *testing.T) {
 	err := root.Execute()
 
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "accepts 1 arg(s)")
+	assert.Contains(t, err.Error(), "missing required argument")
 }
 
 // TestEmployeesRemoveLocationCommand verifies the remove-location command is registered
@@ -458,7 +458,7 @@ func TestEmployeesReactivateCommand_RequiresIDArgument(t *testing.T) {
 	err := root.Execute()
 
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "accepts 1 arg(s)")
+	assert.Contains(t, err.Error(), "missing required argument")
 }
 
 // TestEmployeesDeleteCommand verifies the delete command is registered
@@ -490,7 +490,7 @@ func TestEmployeesDeleteCommand_RequiresIDArgument(t *testing.T) {
 	err := root.Execute()
 
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "accepts 1 arg(s)")
+	assert.Contains(t, err.Error(), "missing required argument")
 }
 
 // TestEmployeesAddUnavailabilityCommand verifies the add-unavailability command is registered
@@ -523,7 +523,7 @@ func TestEmployeesAddUnavailabilityCommand_RequiresIDArgument(t *testing.T) {
 	err := root.Execute()
 
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "accepts 1 arg(s)")
+	assert.Contains(t, err.Error(), "missing required argument")
 }
 
 // TestEmployeesCommand_WithMockClient tests command output using mock HTTP server.

@@ -91,7 +91,7 @@ func newLocationsGetCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "get <id>",
 		Short: "Get location details",
-		Args:  cobra.ExactArgs(1),
+		Args:  RequireArg("id"),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			id, err := strconv.Atoi(args[0])
 			if err != nil {
@@ -185,7 +185,7 @@ func newLocationsUpdateCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "update <id>",
 		Short: "Update a location",
-		Args:  cobra.ExactArgs(1),
+		Args:  RequireArg("id"),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			id, err := strconv.Atoi(args[0])
 			if err != nil {
@@ -235,7 +235,7 @@ func newLocationsArchiveCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "archive <id>",
 		Short: "Archive a location",
-		Args:  cobra.ExactArgs(1),
+		Args:  RequireArg("id"),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			id, err := strconv.Atoi(args[0])
 			if err != nil {
@@ -272,7 +272,7 @@ func newLocationsDeleteCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "delete <id>",
 		Short: "Delete a location",
-		Args:  cobra.ExactArgs(1),
+		Args:  RequireArg("id"),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			id, err := strconv.Atoi(args[0])
 			if err != nil {
@@ -307,7 +307,7 @@ func newLocationsSettingsCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "settings <id>",
 		Short: "Get location settings",
-		Args:  cobra.ExactArgs(1),
+		Args:  RequireArg("id"),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			id, err := strconv.Atoi(args[0])
 			if err != nil {
@@ -355,7 +355,7 @@ func newLocationsSettingsUpdateCmd() *cobra.Command {
 
 Example:
   deputy locations settings-update 123 --settings '{"key": "value"}'`,
-		Args: cobra.ExactArgs(1),
+		Args: RequireArg("id"),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			id, err := strconv.Atoi(args[0])
 			if err != nil {

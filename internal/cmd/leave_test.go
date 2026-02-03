@@ -126,7 +126,7 @@ func TestLeaveGetCommand_RequiresIDArgument(t *testing.T) {
 	err := root.Execute()
 
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "accepts 1 arg(s)")
+	assert.Contains(t, err.Error(), "missing required argument")
 }
 
 // TestLeaveGetCommand_InvalidID tests that get validates the ID is numeric.
@@ -236,7 +236,7 @@ func TestLeaveApproveCommand_RequiresIDArgument(t *testing.T) {
 	err := root.Execute()
 
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "accepts 1 arg(s)")
+	assert.Contains(t, err.Error(), "missing required argument")
 }
 
 // TestLeaveApproveCommand_InvalidID tests that approve validates the ID is numeric.
@@ -282,7 +282,7 @@ func TestLeaveDeclineCommand_RequiresIDArgument(t *testing.T) {
 	err := root.Execute()
 
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "accepts 1 arg(s)")
+	assert.Contains(t, err.Error(), "missing required argument")
 }
 
 // TestLeaveDeclineCommand_InvalidID tests that decline validates the ID is numeric.

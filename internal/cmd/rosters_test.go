@@ -156,7 +156,7 @@ func TestRostersGetCommand_RequiresIDArgument(t *testing.T) {
 	err := root.Execute()
 
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "accepts 1 arg(s)")
+	assert.Contains(t, err.Error(), "missing required argument")
 }
 
 // TestRostersGetCommand_InvalidID tests that get validates the ID is numeric.
@@ -455,7 +455,7 @@ func TestRostersSwapCommand_RequiresIDArgument(t *testing.T) {
 	err := root.Execute()
 
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "accepts 1 arg(s)")
+	assert.Contains(t, err.Error(), "missing required argument")
 }
 
 // TestRostersSwapCommand_InvalidID tests that swap validates the ID is numeric.

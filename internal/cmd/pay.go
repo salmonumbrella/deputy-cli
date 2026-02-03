@@ -81,7 +81,7 @@ func newPayAwardsGetCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "get <award-code>",
 		Short: "Get details for an award from the library",
-		Args:  cobra.ExactArgs(1),
+		Args:  RequireArg("award-code"),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			awardCode := args[0]
 
@@ -126,7 +126,7 @@ func newPayAwardsSetCmd() *cobra.Command {
 		Long: `Assign an award from the pay rate library to an employee.
 
 Overrides are provided as payRuleId:hourlyRate (repeatable).`,
-		Args: cobra.ExactArgs(1),
+		Args: RequireArg("employee-id"),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			employeeID, err := strconv.Atoi(args[0])
 			if err != nil {
@@ -257,7 +257,7 @@ func newPayAgreementsGetCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "get <agreement-id>",
 		Short: "Get agreement details",
-		Args:  cobra.ExactArgs(1),
+		Args:  RequireArg("agreement-id"),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			agreementID, err := strconv.Atoi(args[0])
 			if err != nil {
@@ -306,7 +306,7 @@ func newPayAgreementsUpdateCmd() *cobra.Command {
 		Long: `Update an employee agreement.
 
 Config should be a JSON string (or provided via --config-file).`,
-		Args: cobra.ExactArgs(1),
+		Args: RequireArg("agreement-id"),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			agreementID, err := strconv.Atoi(args[0])
 			if err != nil {

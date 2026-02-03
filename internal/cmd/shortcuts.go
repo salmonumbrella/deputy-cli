@@ -12,22 +12,29 @@ var resourceMap = map[string]string{
 	"employees":   "employees",
 	"employee":    "employees",
 	"emp":         "employees",
+	"e":           "employees",
 	"locations":   "locations",
 	"location":    "locations",
 	"loc":         "locations",
 	"timesheets":  "timesheets",
 	"timesheet":   "timesheets",
 	"ts":          "timesheets",
+	"t":           "timesheets",
 	"rosters":     "rosters",
 	"roster":      "rosters",
 	"shifts":      "rosters",
+	"shift":       "rosters",
+	"r":           "rosters",
 	"departments": "departments",
 	"department":  "departments",
 	"dept":        "departments",
+	"area":        "departments",
 	"areas":       "departments",
+	"d":           "departments",
 	"leave":       "leave",
 	"webhooks":    "webhooks",
 	"webhook":     "webhooks",
+	"wh":          "webhooks",
 	"sales":       "sales",
 	"sale":        "sales",
 }
@@ -46,7 +53,7 @@ Examples:
   deputy list timesheets
   deputy list emp           # alias for employees
   deputy list ts            # alias for timesheets`,
-		Args: cobra.ExactArgs(1),
+		Args: RequireArg("resource"),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			resource := args[0]
 			root := cmd.Root()
@@ -87,7 +94,7 @@ Examples:
   deputy get location 1
   deputy get emp 123        # alias for employees
   deputy get ts 456         # alias for timesheets`,
-		Args: cobra.ExactArgs(2),
+		Args: RequireArgs("resource", "id"),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			resource := args[0]
 			id := args[1]

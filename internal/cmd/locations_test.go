@@ -134,7 +134,7 @@ func TestLocationsGetCommand_RequiresIDArgument(t *testing.T) {
 	err := root.Execute()
 
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "accepts 1 arg(s)")
+	assert.Contains(t, err.Error(), "missing required argument")
 }
 
 // TestLocationsGetCommand_InvalidID tests that get validates the ID is numeric.
@@ -245,7 +245,7 @@ func TestLocationsUpdateCommand_RequiresIDArgument(t *testing.T) {
 	err := root.Execute()
 
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "accepts 1 arg(s)")
+	assert.Contains(t, err.Error(), "missing required argument")
 }
 
 // TestLocationsUpdateCommand_InvalidID tests that update validates the ID is numeric.
@@ -290,7 +290,7 @@ func TestLocationsArchiveCommand_RequiresIDArgument(t *testing.T) {
 	err := root.Execute()
 
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "accepts 1 arg(s)")
+	assert.Contains(t, err.Error(), "missing required argument")
 }
 
 // TestLocationsArchiveCommand_InvalidID tests that archive validates the ID is numeric.
@@ -335,7 +335,7 @@ func TestLocationsDeleteCommand_RequiresIDArgument(t *testing.T) {
 	err := root.Execute()
 
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "accepts 1 arg(s)")
+	assert.Contains(t, err.Error(), "missing required argument")
 }
 
 // TestLocationsDeleteCommand_InvalidID tests that delete validates the ID is numeric.
@@ -380,7 +380,7 @@ func TestLocationsSettingsCommand_RequiresIDArgument(t *testing.T) {
 	err := root.Execute()
 
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "accepts 1 arg(s)")
+	assert.Contains(t, err.Error(), "missing required argument")
 }
 
 // TestLocationsSettingsCommand_InvalidID tests that settings validates the ID is numeric.

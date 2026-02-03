@@ -166,7 +166,7 @@ func TestResourceInfoCommand_RequiresResourceNameArgument(t *testing.T) {
 	err := root.Execute()
 
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "accepts 1 arg(s)")
+	assert.Contains(t, err.Error(), "missing required argument")
 }
 
 // TestResourceInfoCommand_WithMockClient tests that info works with mock client.
@@ -299,7 +299,7 @@ func TestResourceQueryCommand_RequiresResourceNameArgument(t *testing.T) {
 	err := root.Execute()
 
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "accepts 1 arg(s)")
+	assert.Contains(t, err.Error(), "missing required argument")
 }
 
 // TestResourceQueryCommand_HelpShowsFilterSyntax tests that query help shows filter syntax examples
@@ -379,7 +379,7 @@ func TestResourceGetCommand_RequiresArguments(t *testing.T) {
 	err := root.Execute()
 
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "accepts 2 arg(s)")
+	assert.Contains(t, err.Error(), "missing required argument(s): <ResourceName> <id>")
 }
 
 // TestResourceGetCommand_RequiresBothArguments tests that get requires both arguments
@@ -393,7 +393,7 @@ func TestResourceGetCommand_RequiresBothArguments(t *testing.T) {
 	err := root.Execute()
 
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "accepts 2 arg(s)")
+	assert.Contains(t, err.Error(), "missing required argument(s): <id>")
 }
 
 // TestResourceGetCommand_InvalidID tests that get validates the ID is numeric.

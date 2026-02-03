@@ -4,7 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
+
+	"github.com/spf13/cobra"
 
 	"github.com/salmonumbrella/deputy-cli/internal/api"
 	"github.com/salmonumbrella/deputy-cli/internal/iocontext"
@@ -19,6 +22,50 @@ func validateDateFormat(dateStr string) error {
 		return fmt.Errorf("invalid date format %q: expected YYYY-MM-DD", dateStr)
 	}
 	return nil
+}
+
+// RequireArg creates a Cobra Args validator that requires exactly one argument
+// with a descriptive error message.
+func RequireArg(argName string) cobra.PositionalArgs {
+	return func(cmd *cobra.Command, args []string) error {
+		if len(args) < 1 {
+			return fmt.Errorf("missing required argument: <%s>\nHint: Run '%s --help' for usage", argName, cmd.CommandPath())
+		}
+		if len(args) > 1 {
+			return fmt.Errorf("too many arguments, expected <%s>\nHint: Run '%s --help' for usage", argName, cmd.CommandPath())
+		}
+		return nil
+	}
+}
+
+// RequireArgs creates a Cobra Args validator that requires exactly the specified
+// number of arguments with descriptive error messages.
+func RequireArgs(argNames ...string) cobra.PositionalArgs {
+	return func(cmd *cobra.Command, args []string) error {
+		expected := len(argNames)
+		if len(args) < expected {
+			var missing []string
+			for i := len(args); i < expected; i++ {
+				missing = append(missing, "<"+argNames[i]+">")
+			}
+			return fmt.Errorf("missing required argument(s): %s\nHint: Run '%s --help' for usage",
+				strings.Join(missing, " "), cmd.CommandPath())
+		}
+		if len(args) > expected {
+			return fmt.Errorf("too many arguments, expected %s\nHint: Run '%s --help' for usage",
+				formatArgNames(argNames), cmd.CommandPath())
+		}
+		return nil
+	}
+}
+
+// formatArgNames formats argument names for display.
+func formatArgNames(names []string) string {
+	var formatted []string
+	for _, name := range names {
+		formatted = append(formatted, "<"+name+">")
+	}
+	return strings.Join(formatted, " ")
 }
 
 // Context key for debug flag

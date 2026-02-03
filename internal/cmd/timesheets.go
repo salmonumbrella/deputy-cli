@@ -138,7 +138,7 @@ func newTimesheetsGetCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "get <id>",
 		Short: "Get timesheet details",
-		Args:  cobra.ExactArgs(1),
+		Args:  RequireArg("id"),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			id, err := strconv.Atoi(args[0])
 			if err != nil {
@@ -186,7 +186,7 @@ func newTimesheetsUpdateCmd() *cobra.Command {
 		Long: `Update a timesheet's properties.
 
 Currently supports updating the cost/pay amount for a timesheet.`,
-		Args: cobra.ExactArgs(1),
+		Args: RequireArg("id"),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			id, err := strconv.Atoi(args[0])
 			if err != nil {
@@ -293,7 +293,7 @@ Example:
 
   # Assign pay rule 304 to timesheet 19379
   deputy timesheets select-pay-rule 19379 --pay-rule 304`,
-		Args: cobra.ExactArgs(1),
+		Args: RequireArg("timesheet-id"),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			timesheetID, err := strconv.Atoi(args[0])
 			if err != nil {

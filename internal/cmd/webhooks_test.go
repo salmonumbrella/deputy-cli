@@ -150,7 +150,7 @@ func TestWebhooksGetCommand_RequiresIDArgument(t *testing.T) {
 	err := root.Execute()
 
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "accepts 1 arg(s)")
+	assert.Contains(t, err.Error(), "missing required argument")
 }
 
 // TestWebhooksGetCommand_InvalidID tests that get validates the ID is numeric.
@@ -260,7 +260,7 @@ func TestWebhooksDeleteCommand_RequiresIDArgument(t *testing.T) {
 	err := root.Execute()
 
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "accepts 1 arg(s)")
+	assert.Contains(t, err.Error(), "missing required argument")
 }
 
 // TestWebhooksDeleteCommand_InvalidID tests that delete validates the ID is numeric.

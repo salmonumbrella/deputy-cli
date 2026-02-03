@@ -84,7 +84,7 @@ func newDepartmentsGetCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "get <id>",
 		Short: "Get department details",
-		Args:  cobra.ExactArgs(1),
+		Args:  RequireArg("id"),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			id, err := strconv.Atoi(args[0])
 			if err != nil {
@@ -182,7 +182,7 @@ func newDepartmentsUpdateCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "update <id>",
 		Short: "Update a department",
-		Args:  cobra.ExactArgs(1),
+		Args:  RequireArg("id"),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			id, err := strconv.Atoi(args[0])
 			if err != nil {
@@ -237,7 +237,7 @@ func newDepartmentsDeleteCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "delete <id>",
 		Short: "Delete a department",
-		Args:  cobra.ExactArgs(1),
+		Args:  RequireArg("id"),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			id, err := strconv.Atoi(args[0])
 			if err != nil {

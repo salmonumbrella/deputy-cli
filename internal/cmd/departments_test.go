@@ -135,7 +135,7 @@ func TestDepartmentsGetCommand_RequiresIDArgument(t *testing.T) {
 	err := root.Execute()
 
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "accepts 1 arg(s)")
+	assert.Contains(t, err.Error(), "missing required argument")
 }
 
 // TestDepartmentsGetCommand_InvalidID tests that get validates the ID is numeric.
@@ -235,7 +235,7 @@ func TestDepartmentsUpdateCommand_RequiresIDArgument(t *testing.T) {
 	err := root.Execute()
 
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "accepts 1 arg(s)")
+	assert.Contains(t, err.Error(), "missing required argument")
 }
 
 // TestDepartmentsUpdateCommand_InvalidID tests that update validates the ID is numeric.
@@ -280,7 +280,7 @@ func TestDepartmentsDeleteCommand_RequiresIDArgument(t *testing.T) {
 	err := root.Execute()
 
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "accepts 1 arg(s)")
+	assert.Contains(t, err.Error(), "missing required argument")
 }
 
 // TestDepartmentsDeleteCommand_InvalidID tests that delete validates the ID is numeric.
