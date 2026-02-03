@@ -3,7 +3,6 @@ package cmd
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"errors"
 	"net/http"
 	"net/http/httptest"
@@ -111,11 +110,12 @@ func TestAuthTestCommand_UsesAuthClientFactory(t *testing.T) {
 		assert.Equal(t, http.MethodGet, r.Method)
 		assert.Equal(t, "/api/v1/me", r.URL.Path)
 		w.Header().Set("Content-Type", "application/json")
-		_ = json.NewEncoder(w).Encode(api.MeInfo{
-			Name:         "Ada Lovelace",
-			PrimaryEmail: "ada@example.com",
-			EmployeeId:   42,
-		})
+		// Simulate Deputy API response with PascalCase field names
+		_, _ = w.Write([]byte(`{
+			"Name": "Ada Lovelace",
+			"PrimaryEmail": "ada@example.com",
+			"EmployeeId": 42
+		}`))
 	}))
 	defer server.Close()
 

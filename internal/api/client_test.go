@@ -2,7 +2,6 @@ package api
 
 import (
 	"context"
-	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -107,12 +106,13 @@ func TestClient_Me(t *testing.T) {
 		assert.Equal(t, "application/json", r.Header.Get("Accept"))
 
 		w.Header().Set("Content-Type", "application/json")
-		_ = json.NewEncoder(w).Encode(MeInfo{
-			UserId:       1,
-			Name:         "Test User",
-			PrimaryEmail: "test@example.com",
-			Company:      42,
-		})
+		// Simulate Deputy API response with PascalCase field names
+		_, _ = w.Write([]byte(`{
+			"UserId": 1,
+			"Name": "Test User",
+			"PrimaryEmail": "test@example.com",
+			"Company": 42
+		}`))
 	}))
 	defer server.Close()
 

@@ -18,20 +18,21 @@ func TestMeService_Info(t *testing.T) {
 		assert.Equal(t, "Bearer test-token", r.Header.Get("Authorization"))
 
 		w.Header().Set("Content-Type", "application/json")
-		_ = json.NewEncoder(w).Encode(MeInfo{
-			UserId:       123,
-			EmployeeId:   456,
-			Login:        "jdoe",
-			Name:         "John Doe",
-			FirstName:    "John",
-			LastName:     "Doe",
-			PrimaryEmail: "john@example.com",
-			PrimaryPhone: "+1234567890",
-			Photo:        "https://example.com/photo.jpg",
-			Company:      1,
-			Portfolio:    "Test Company",
-			Role:         5,
-		})
+		// Simulate Deputy API response with PascalCase field names
+		_, _ = w.Write([]byte(`{
+			"UserId": 123,
+			"EmployeeId": 456,
+			"Login": "jdoe",
+			"Name": "John Doe",
+			"FirstName": "John",
+			"LastName": "Doe",
+			"PrimaryEmail": "john@example.com",
+			"PrimaryPhone": "+1234567890",
+			"Photo": "https://example.com/photo.jpg",
+			"Company": 1,
+			"Portfolio": "Test Company",
+			"Role": 5
+		}`))
 	}))
 	defer server.Close()
 
@@ -50,6 +51,51 @@ func TestMeService_Info(t *testing.T) {
 	assert.Equal(t, 1, result.Company)
 	assert.Equal(t, "Test Company", result.Portfolio)
 	assert.Equal(t, 5, result.Role)
+}
+
+func TestMeInfo_JSONMarshal_SnakeCase(t *testing.T) {
+	// Test that MeInfo marshals to snake_case JSON with id field
+	info := MeInfo{
+		UserId:       123,
+		EmployeeId:   456,
+		Login:        "jdoe",
+		Name:         "John Doe",
+		FirstName:    "John",
+		LastName:     "Doe",
+		PrimaryEmail: "john@example.com",
+		PrimaryPhone: "+1234567890",
+		Photo:        "https://example.com/photo.jpg",
+		Company:      1,
+		Portfolio:    "Test Company",
+		Role:         5,
+	}
+
+	data, err := json.Marshal(info)
+	require.NoError(t, err)
+
+	// Verify snake_case field names
+	var result map[string]interface{}
+	require.NoError(t, json.Unmarshal(data, &result))
+
+	// Check id field exists and equals user_id
+	assert.Equal(t, float64(123), result["id"])
+	assert.Equal(t, float64(123), result["user_id"])
+	assert.Equal(t, float64(456), result["employee_id"])
+	assert.Equal(t, "jdoe", result["login"])
+	assert.Equal(t, "John Doe", result["name"])
+	assert.Equal(t, "John", result["first_name"])
+	assert.Equal(t, "Doe", result["last_name"])
+	assert.Equal(t, "john@example.com", result["primary_email"])
+	assert.Equal(t, "+1234567890", result["primary_phone"])
+	assert.Equal(t, "https://example.com/photo.jpg", result["photo"])
+	assert.Equal(t, float64(1), result["company"])
+	assert.Equal(t, "Test Company", result["portfolio"])
+	assert.Equal(t, float64(5), result["role"])
+
+	// Verify PascalCase fields do NOT exist
+	assert.Nil(t, result["UserId"])
+	assert.Nil(t, result["EmployeeId"])
+	assert.Nil(t, result["PrimaryEmail"])
 }
 
 func TestMeService_Info_Unauthorized(t *testing.T) {

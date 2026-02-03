@@ -148,19 +148,20 @@ func TestMeCommand_WithMockClient(t *testing.T) {
 	t.Run("info returns user details", func(t *testing.T) {
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Content-Type", "application/json")
-			_ = json.NewEncoder(w).Encode(api.MeInfo{
-				UserId:       1,
-				EmployeeId:   2,
-				Login:        "testuser",
-				Name:         "Test User",
-				FirstName:    "Test",
-				LastName:     "User",
-				PrimaryEmail: "test@example.com",
-				PrimaryPhone: "+1234567890",
-				Company:      100,
-				Portfolio:    "Test Portfolio",
-				Role:         2,
-			})
+			// Simulate Deputy API response with PascalCase field names
+			_, _ = w.Write([]byte(`{
+				"UserId": 1,
+				"EmployeeId": 2,
+				"Login": "testuser",
+				"Name": "Test User",
+				"FirstName": "Test",
+				"LastName": "User",
+				"PrimaryEmail": "test@example.com",
+				"PrimaryPhone": "+1234567890",
+				"Company": 100,
+				"Portfolio": "Test Portfolio",
+				"Role": 2
+			}`))
 		}))
 		defer server.Close()
 
@@ -186,11 +187,12 @@ func TestMeCommand_WithMockClient(t *testing.T) {
 	t.Run("info returns JSON output", func(t *testing.T) {
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Content-Type", "application/json")
-			_ = json.NewEncoder(w).Encode(api.MeInfo{
-				UserId:       1,
-				Name:         "Test User",
-				PrimaryEmail: "test@example.com",
-			})
+			// Simulate Deputy API response with PascalCase field names
+			_, _ = w.Write([]byte(`{
+				"UserId": 1,
+				"Name": "Test User",
+				"PrimaryEmail": "test@example.com"
+			}`))
 		}))
 		defer server.Close()
 
@@ -209,8 +211,10 @@ func TestMeCommand_WithMockClient(t *testing.T) {
 
 		require.NoError(t, err)
 		output := buf.String()
-		assert.Contains(t, output, `"Name": "Test User"`)
-		assert.Contains(t, output, `"PrimaryEmail": "test@example.com"`)
+		// JSON output now uses snake_case field names
+		assert.Contains(t, output, `"name": "Test User"`)
+		assert.Contains(t, output, `"primary_email": "test@example.com"`)
+		assert.Contains(t, output, `"id": 1`)
 	})
 
 	t.Run("timesheets returns timesheet table", func(t *testing.T) {
