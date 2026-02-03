@@ -343,6 +343,14 @@ Config should be a JSON string (or provided via --config-file).`,
 				if !json.Valid([]byte(configValue)) {
 					return errors.New("config must be valid JSON")
 				}
+				// Verify it's an object, not an array or primitive
+				var parsed interface{}
+				if err := json.Unmarshal([]byte(configValue), &parsed); err != nil {
+					return fmt.Errorf("config parse error: %w", err)
+				}
+				if _, isMap := parsed.(map[string]interface{}); !isMap {
+					return errors.New("config must be a JSON object (not an array or primitive)")
+				}
 				configPayload = json.RawMessage(configValue)
 			}
 

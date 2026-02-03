@@ -296,8 +296,9 @@ func TestPayAgreementsUpdateCommand_ConfigFile(t *testing.T) {
 
 		var payload map[string]interface{}
 		require.NoError(t, json.NewDecoder(r.Body).Decode(&payload))
-		_, ok := payload["Config"].([]interface{})
+		configMap, ok := payload["Config"].(map[string]interface{})
 		assert.True(t, ok)
+		assert.Equal(t, float64(108), configMap["area"])
 
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(api.EmployeeAgreement{Id: 9, Employee: 42, Active: true})
@@ -309,7 +310,7 @@ func TestPayAgreementsUpdateCommand_ConfigFile(t *testing.T) {
 
 	dir := t.TempDir()
 	configPath := dir + "/config.json"
-	require.NoError(t, os.WriteFile(configPath, []byte(`[]`), 0o600))
+	require.NoError(t, os.WriteFile(configPath, []byte(`{"area":108}`), 0o600))
 
 	buf := &bytes.Buffer{}
 	ctx := WithClientFactory(context.Background(), mockFactory)

@@ -1,10 +1,92 @@
 package cmd
 
 import (
+	"bytes"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
+
+func TestPayAgreementsUpdate_ConfigArrayError(t *testing.T) {
+	t.Run("rejects array config", func(t *testing.T) {
+		cmd := NewRootCmd()
+		buf := &bytes.Buffer{}
+		cmd.SetOut(buf)
+		cmd.SetErr(buf)
+		cmd.SetArgs([]string{"pay", "agreements", "update", "194", "--config", `[{"area":108}]`})
+
+		err := cmd.Execute()
+
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "must be a JSON object")
+	})
+
+	t.Run("rejects primitive config", func(t *testing.T) {
+		cmd := NewRootCmd()
+		buf := &bytes.Buffer{}
+		cmd.SetOut(buf)
+		cmd.SetErr(buf)
+		cmd.SetArgs([]string{"pay", "agreements", "update", "194", "--config", `"just a string"`})
+
+		err := cmd.Execute()
+
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "must be a JSON object")
+	})
+
+	t.Run("rejects number config", func(t *testing.T) {
+		cmd := NewRootCmd()
+		buf := &bytes.Buffer{}
+		cmd.SetOut(buf)
+		cmd.SetErr(buf)
+		cmd.SetArgs([]string{"pay", "agreements", "update", "194", "--config", `123`})
+
+		err := cmd.Execute()
+
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "must be a JSON object")
+	})
+
+	t.Run("rejects invalid JSON", func(t *testing.T) {
+		cmd := NewRootCmd()
+		buf := &bytes.Buffer{}
+		cmd.SetOut(buf)
+		cmd.SetErr(buf)
+		cmd.SetArgs([]string{"pay", "agreements", "update", "194", "--config", `{invalid`})
+
+		err := cmd.Execute()
+
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "must be valid JSON")
+	})
+
+	t.Run("rejects boolean config", func(t *testing.T) {
+		cmd := NewRootCmd()
+		buf := &bytes.Buffer{}
+		cmd.SetOut(buf)
+		cmd.SetErr(buf)
+		cmd.SetArgs([]string{"pay", "agreements", "update", "194", "--config", `true`})
+
+		err := cmd.Execute()
+
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "must be a JSON object")
+	})
+
+	t.Run("rejects null config", func(t *testing.T) {
+		cmd := NewRootCmd()
+		buf := &bytes.Buffer{}
+		cmd.SetOut(buf)
+		cmd.SetErr(buf)
+		cmd.SetArgs([]string{"pay", "agreements", "update", "194", "--config", `null`})
+
+		err := cmd.Execute()
+
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "must be a JSON object")
+	})
+}
 
 func TestParseOverridePayRule(t *testing.T) {
 	t.Run("colon separator", func(t *testing.T) {
