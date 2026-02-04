@@ -64,3 +64,18 @@ changelog:
       - "^ci:"
       - Merge pull request
       - Merge branch
+
+brews:
+  - name: deputy-cli
+    repository:
+      owner: salmonumbrella
+      name: homebrew-tap
+      token: "{{ .Env.HOMEBREW_TAP_TOKEN }}"
+    directory: Formula
+    homepage: "https://github.com/salmonumbrella/deputy-cli"
+    description: "CLI for Deputy to manage employees, timesheets, rosters, and leave"
+    license: "MIT"
+    install: |
+      bin.install "deputy"
+    test: |
+      system "#{bin}/deputy", "--help"
