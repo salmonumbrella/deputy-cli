@@ -60,7 +60,7 @@ Without filters, this returns your timesheets. Use --employee to query a
 specific employee's timesheets (requires permission). Use --from/--to to
 filter by date (YYYY-MM-DD).`,
 		Example: `  deputy timesheets list --from 2024-01-01 --to 2024-01-31
-  deputy timesheets list --employee 123 --from 2024-01-01 --to 2024-01-31 -o json -q '[.[].Id]'
+  deputy timesheets list --employee 123 --from 2024-01-01 --to 2024-01-31 -o json -q '.items[].Id'
   deputy timesheets list --employee 123 --from 2024-01-01 --to 2024-01-31 --raw`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			client, err := getClientFromContext(cmd.Context())

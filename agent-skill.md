@@ -47,7 +47,7 @@ deputy resource query Timesheet --filter "EmployeeId=123" --filter "Date>=2024-0
 ### Output Formats
 ```bash
 -o json                     # JSON output for parsing
--o json -q '.[] | .Id'      # With jq filter
+-o json -q '.items[] | .Id' # With jq filter
 --raw                       # JSON Lines (one object per line)
 --version                   # Show version info
 ```

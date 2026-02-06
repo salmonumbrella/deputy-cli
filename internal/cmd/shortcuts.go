@@ -2,8 +2,11 @@ package cmd
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/spf13/cobra"
+
+	"github.com/salmonumbrella/deputy-cli/internal/api"
 )
 
 // resourceMap provides aliases for common resource names.
@@ -39,6 +42,62 @@ var resourceMap = map[string]string{
 	"sale":        "sales",
 }
 
+// persistentFlagArgs forwards persistent flags from the root command so that
+// shortcut commands (list, get) behave identically to their full-form equivalents.
+//
+// Keep in sync with the persistent flags defined in root.go (NewRootCmd).
+// When a new persistent flag is added to the root command, it must also be
+// forwarded here.
+func persistentFlagArgs(root *cobra.Command) []string {
+	out, _ := root.PersistentFlags().GetString("output")
+	query, _ := root.PersistentFlags().GetString("query")
+	raw, _ := root.PersistentFlags().GetBool("raw")
+	debug, _ := root.PersistentFlags().GetBool("debug")
+	noColor, _ := root.PersistentFlags().GetBool("no-color")
+
+	args := []string{"--output", out}
+	if query != "" {
+		args = append(args, "--query", query)
+	}
+	if raw {
+		args = append(args, "--raw")
+	}
+	if debug {
+		args = append(args, "--debug")
+	}
+	if noColor {
+		args = append(args, "--no-color")
+	}
+
+	return args
+}
+
+// knownResourceLower maps lowercase resource names to their canonical PascalCase
+// form as used by the Deputy API (e.g. "employeeagreement" -> "EmployeeAgreement").
+var knownResourceLower = func() map[string]string {
+	resources := api.KnownResources()
+	m := make(map[string]string, len(resources))
+	for _, r := range resources {
+		m[strings.ToLower(r)] = r
+	}
+	return m
+}()
+
+// resolveKnownResourceName tries to map a user-provided resource identifier to a
+// canonical Deputy API resource name (case-insensitive), falling back to the
+// original input when no match is found.
+func resolveKnownResourceName(input string) string {
+	key := strings.TrimSpace(input)
+	if key == "" {
+		return input
+	}
+
+	if canonical, ok := knownResourceLower[strings.ToLower(key)]; ok {
+		return canonical
+	}
+	return input
+}
+
 func newListCmd() *cobra.Command {
 	var limit, offset int
 
@@ -52,28 +111,44 @@ Examples:
   deputy list locations
   deputy list timesheets
   deputy list emp           # alias for employees
-  deputy list ts            # alias for timesheets`,
+  deputy list ts            # alias for timesheets
+  deputy list EmployeeAgreement  # falls back to 'deputy resource query EmployeeAgreement'`,
 		Args: RequireArg("resource"),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			resource := args[0]
 			root := cmd.Root()
 
-			resolved := resource
-			if mapped, ok := resourceMap[resource]; ok {
-				resolved = mapped
-			}
+			cmdArgs := persistentFlagArgs(root)
 
-			// Build args list
-			cmdArgs := []string{resolved, "list"}
-			if limit > 0 {
-				cmdArgs = append(cmdArgs, "--limit", fmt.Sprintf("%d", limit))
-			}
-			if offset > 0 {
-				cmdArgs = append(cmdArgs, "--offset", fmt.Sprintf("%d", offset))
+			// Normal shortcut path: map a common alias (case-insensitive) to the
+			// corresponding first-class CLI noun.
+			resourceKey := strings.ToLower(resource)
+			if mapped, ok := resourceMap[resourceKey]; ok {
+				cmdArgs = append(cmdArgs, mapped, "list")
+				if limit > 0 {
+					cmdArgs = append(cmdArgs, "--limit", fmt.Sprintf("%d", limit))
+				}
+				if offset > 0 {
+					// First-class commands use --offset for pagination
+					// (the else branch uses --start for resource query).
+					cmdArgs = append(cmdArgs, "--offset", fmt.Sprintf("%d", offset))
+				}
+			} else {
+				// Agent desire path: if the user supplies an API resource name (e.g.
+				// EmployeeAgreement), transparently route to the generic resource query.
+				resourceName := resolveKnownResourceName(resource)
+				cmdArgs = append(cmdArgs, "resource", "query", resourceName)
+				if limit > 0 {
+					cmdArgs = append(cmdArgs, "--limit", fmt.Sprintf("%d", limit))
+				}
+				if offset > 0 {
+					// resource query uses --start for pagination offsets
+					cmdArgs = append(cmdArgs, "--start", fmt.Sprintf("%d", offset))
+				}
 			}
 
 			root.SetArgs(cmdArgs)
-			return root.Execute()
+			return root.ExecuteContext(cmd.Context())
 		},
 	}
 
@@ -93,20 +168,26 @@ Examples:
   deputy get employee 123
   deputy get location 1
   deputy get emp 123        # alias for employees
-  deputy get ts 456         # alias for timesheets`,
+  deputy get ts 456         # alias for timesheets
+  deputy get EmployeeAgreement 194  # falls back to 'deputy resource get EmployeeAgreement 194'`,
 		Args: RequireArgs("resource", "id"),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			resource := args[0]
 			id := args[1]
 			root := cmd.Root()
 
-			resolved := resource
-			if mapped, ok := resourceMap[resource]; ok {
-				resolved = mapped
+			cmdArgs := persistentFlagArgs(root)
+
+			resourceKey := strings.ToLower(resource)
+			if mapped, ok := resourceMap[resourceKey]; ok {
+				cmdArgs = append(cmdArgs, mapped, "get", id)
+			} else {
+				resourceName := resolveKnownResourceName(resource)
+				cmdArgs = append(cmdArgs, "resource", "get", resourceName, id)
 			}
 
-			root.SetArgs([]string{resolved, "get", id})
-			return root.Execute()
+			root.SetArgs(cmdArgs)
+			return root.ExecuteContext(cmd.Context())
 		},
 	}
 

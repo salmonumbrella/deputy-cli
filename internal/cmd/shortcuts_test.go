@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -159,4 +160,36 @@ func TestRootCmd_HasShortcutCommands(t *testing.T) {
 
 	assert.Contains(t, names, "list", "root should have list shortcut command")
 	assert.Contains(t, names, "get", "root should have get shortcut command")
+}
+
+func TestResolveKnownResourceName(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{"exact canonical casing", "Employee", "Employee"},
+		{"all lowercase", "employee", "Employee"},
+		{"all uppercase", "EMPLOYEE", "Employee"},
+		{"mixed case multi-word", "employeeagreement", "EmployeeAgreement"},
+		{"unknown resource passes through unchanged", "FooBar", "FooBar"},
+		{"empty string returns empty", "", ""},
+		{"whitespace-padded input gets trimmed and resolved", "  Employee  ", "Employee"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := resolveKnownResourceName(tt.input)
+			assert.Equal(t, tt.expected, result)
+		})
+	}
+}
+
+func TestResourceMapKeysAreLowercase(t *testing.T) {
+	for key := range resourceMap {
+		t.Run(key, func(t *testing.T) {
+			assert.Equal(t, strings.ToLower(key), key,
+				"resourceMap key %q must be lowercase", key)
+		})
+	}
 }

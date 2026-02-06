@@ -310,10 +310,17 @@ Machine-readable output for automation:
 
 ```bash
 $ deputy employees list --output json
-[
-  {"Id": 1, "FirstName": "John", "LastName": "Doe", "Email": "john@example.com", "Active": true},
-  {"Id": 2, "FirstName": "Jane", "LastName": "Smith", "Email": "jane@example.com", "Active": true}
-]
+{
+  "items": [
+    {"Id": 1, "FirstName": "John", "LastName": "Doe", "Email": "john@example.com", "Active": true},
+    {"Id": 2, "FirstName": "Jane", "LastName": "Smith", "Email": "jane@example.com", "Active": true}
+  ],
+  "meta": {
+    "count": 2,
+    "limit": 0,
+    "offset": 0
+  }
+}
 ```
 
 ### JQ Filtering
@@ -322,13 +329,13 @@ Filter JSON output with JQ expressions:
 
 ```bash
 # Get just employee IDs
-deputy employees list --output json --query '[.[].Id]'
+deputy employees list --output json --query '[.items[].Id]'
 
 # Filter active employees only
-deputy employees list --output json --query '[.[] | select(.Active == true)]'
+deputy employees list --output json --query '[.items[] | select(.Active == true)]'
 
 # Get employee emails
-deputy employees list --output json --query '[.[].Email]'
+deputy employees list --output json --query '[.items[].Email]'
 ```
 
 ## Examples
@@ -372,12 +379,12 @@ deputy leave approve 456 --comment "Enjoy your vacation!"
 
 ```bash
 # Get all active employee IDs
-deputy employees list --output json --query '[.[] | select(.Active) | .Id]'
+deputy employees list --output json --query '[.items[] | select(.Active) | .Id]'
 
 # Pipeline: get timesheet hours for each employee
-for id in $(deputy employees list -o json -q '[.[].Id] | .[]'); do
+for id in $(deputy employees list -o json -q '.items[].Id'); do
   echo "Employee $id:"
-  deputy timesheets list --employee $id -o json -q '[.[].TotalTime] | add'
+  deputy timesheets list --employee $id -o json -q '[.items[].TotalTime] | add'
 done
 ```
 
