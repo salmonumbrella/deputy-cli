@@ -53,12 +53,12 @@ func newTimesheetsListCmd() *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:   "list",
-		Short: "List timesheets",
-		Long: `List timesheets.
+		Short: "List my timesheets",
+		Long: `List timesheets for the authenticated user.
 
-Without filters, this returns your timesheets. Use --employee to query a
-specific employee's timesheets (requires permission). Use --from/--to to
-filter by date (YYYY-MM-DD).`,
+By default, this returns only your own timesheets via the /my/timesheets endpoint.
+Use --employee to query a specific employee's timesheets (uses a different API endpoint
+and requires permission). Use --from/--to to filter by date (YYYY-MM-DD).`,
 		Example: `  deputy timesheets list --from 2024-01-01 --to 2024-01-31
   deputy timesheets list --employee 123 --from 2024-01-01 --to 2024-01-31 -o json -q '.items[].Id'
   deputy timesheets list --employee 123 --from 2024-01-01 --to 2024-01-31 --raw`,
