@@ -160,7 +160,12 @@ func (c *Client) doWithOpts(ctx context.Context, method, path string, body io.Re
 
 	if resp.StatusCode >= 400 {
 		body, _ := io.ReadAll(resp.Body)
-		return sanitizeErrorResponse(resp.StatusCode, body, c.debug)
+		apiErr := sanitizeErrorResponse(resp.StatusCode, body, c.debug)
+		if c.debug {
+			// Helpful context for diagnosing bad base URLs/tenants without printing credentials.
+			return fmt.Errorf("%s %s: %w", method, url, apiErr)
+		}
+		return apiErr
 	}
 
 	if result != nil {
@@ -190,7 +195,11 @@ func (c *Client) doV2(ctx context.Context, method, path string, body io.Reader, 
 
 	if resp.StatusCode >= 400 {
 		body, _ := io.ReadAll(resp.Body)
-		return sanitizeErrorResponse(resp.StatusCode, body, c.debug)
+		apiErr := sanitizeErrorResponse(resp.StatusCode, body, c.debug)
+		if c.debug {
+			return fmt.Errorf("%s %s: %w", method, url, apiErr)
+		}
+		return apiErr
 	}
 
 	if result != nil {
