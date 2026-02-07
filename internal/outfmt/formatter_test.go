@@ -180,7 +180,7 @@ func TestOutputJSONLines_NilData(t *testing.T) {
 	err := outputJSONLines(out, nil)
 	require.NoError(t, err)
 
-	assert.Equal(t, "null\n", out.String())
+	assert.Equal(t, "[]\n", out.String())
 }
 
 func TestOutputJSONLines_PointerToSlice(t *testing.T) {
@@ -205,7 +205,16 @@ func TestOutputJSONLines_NilPointer(t *testing.T) {
 
 	err := outputJSONLines(out, items)
 	require.NoError(t, err)
-	assert.Equal(t, "null\n", out.String())
+	assert.Equal(t, "[]\n", out.String())
+}
+
+func TestOutputJSONLines_NilSlice(t *testing.T) {
+	out := &bytes.Buffer{}
+	var items []map[string]any // nil slice
+
+	err := outputJSONLines(out, items)
+	require.NoError(t, err)
+	assert.Equal(t, "[]\n", out.String())
 }
 
 func TestFormatter_EndTableWithoutStart(t *testing.T) {
@@ -292,13 +301,13 @@ func TestAutoMeta_EmptySlice(t *testing.T) {
 
 func TestAutoMeta_Nil(t *testing.T) {
 	meta := AutoMeta(nil)
-	assert.Empty(t, meta)
+	assert.Equal(t, 0, meta["count"])
 }
 
 func TestAutoMeta_NilPointer(t *testing.T) {
 	var data *[]int
 	meta := AutoMeta(data)
-	assert.Empty(t, meta)
+	assert.Equal(t, 0, meta["count"])
 }
 
 func TestAutoMeta_NonSlice(t *testing.T) {
@@ -389,6 +398,72 @@ func TestLimitOffsetContext(t *testing.T) {
 	offset, ok = GetOffset(ctx)
 	assert.True(t, ok)
 	assert.Equal(t, 25, offset)
+}
+
+func TestFormatter_OutputList_NilSlice(t *testing.T) {
+	out := &bytes.Buffer{}
+	ctx := WithFormat(testContext(out), "json")
+	f := New(ctx)
+
+	type Employee struct {
+		Id   int    `json:"id"`
+		Name string `json:"name"`
+	}
+
+	var employees []Employee // nil slice — simulates empty API response
+
+	err := f.OutputList(employees)
+	require.NoError(t, err)
+
+	var result map[string]any
+	err = json.Unmarshal(out.Bytes(), &result)
+	require.NoError(t, err)
+
+	// items must be [] not null — otherwise jq `.items[]` fails
+	assert.NotNil(t, result["items"])
+	items, ok := result["items"].([]any)
+	require.True(t, ok, "items should be a JSON array, got %T", result["items"])
+	assert.Empty(t, items)
+
+	meta := result["meta"].(map[string]any)
+	assert.Equal(t, float64(0), meta["count"])
+}
+
+func TestFormatter_OutputList_NilSlice_WithJQ(t *testing.T) {
+	out := &bytes.Buffer{}
+	ctx := WithFormat(testContext(out), "json")
+	ctx = WithQuery(ctx, ".items[]")
+	f := New(ctx)
+
+	var employees []map[string]any // nil slice
+
+	// Must not return error — this is the core bug fix
+	err := f.OutputList(employees)
+	require.NoError(t, err)
+
+	// Empty output is correct — no items to iterate
+	assert.Empty(t, out.String())
+}
+
+func TestFormatter_OutputWithMeta_NilSlice(t *testing.T) {
+	out := &bytes.Buffer{}
+	ctx := WithFormat(testContext(out), "json")
+	f := New(ctx)
+
+	var data []string // nil slice
+
+	err := f.OutputWithMeta(data, map[string]any{"count": 0})
+	require.NoError(t, err)
+
+	var result map[string]any
+	err = json.Unmarshal(out.Bytes(), &result)
+	require.NoError(t, err)
+
+	// items must serialize as [] not null
+	assert.NotNil(t, result["items"])
+	items, ok := result["items"].([]any)
+	require.True(t, ok, "items should be a JSON array, got %T", result["items"])
+	assert.Empty(t, items)
 }
 
 // TestFormatter_OutputList_WithQuery tests that JQ queries work on OutputList

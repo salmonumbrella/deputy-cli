@@ -44,7 +44,7 @@ func (f *Formatter) OutputWithMeta(data any, meta map[string]any) error {
 	}
 
 	wrapped := map[string]any{
-		"items": data,
+		"items": coerceNilSlice(data),
 		"meta":  meta,
 	}
 	return f.Output(wrapped)
@@ -81,12 +81,14 @@ func AutoMeta(data any) map[string]any {
 	meta := map[string]any{}
 
 	if data == nil {
+		meta["count"] = 0
 		return meta
 	}
 
 	rv := reflect.ValueOf(data)
 	for rv.Kind() == reflect.Pointer {
 		if rv.IsNil() {
+			meta["count"] = 0
 			return meta
 		}
 		rv = rv.Elem()
@@ -146,6 +148,27 @@ func (f *Formatter) outputJQFiltered(data any, queryStr string) error {
 	return nil
 }
 
+// coerceNilSlice returns an empty []any{} when data is a nil slice,
+// so JSON serialization produces [] instead of null.
+// This prevents jq filters like .items[] from failing with
+// "cannot iterate over null" when a list endpoint returns no results.
+func coerceNilSlice(data any) any {
+	if data == nil {
+		return []any{}
+	}
+	rv := reflect.ValueOf(data)
+	for rv.Kind() == reflect.Pointer {
+		if rv.IsNil() {
+			return []any{}
+		}
+		rv = rv.Elem()
+	}
+	if rv.Kind() == reflect.Slice && rv.IsNil() {
+		return []any{}
+	}
+	return data
+}
+
 func encodeJSON(w io.Writer, v any, pretty bool) error {
 	enc := json.NewEncoder(w)
 	if pretty {
@@ -156,19 +179,22 @@ func encodeJSON(w io.Writer, v any, pretty bool) error {
 
 func outputJSONLines(w io.Writer, data any) error {
 	if data == nil {
-		return encodeJSON(w, nil, false)
+		return encodeJSON(w, []any{}, false)
 	}
 
 	val := reflect.ValueOf(data)
 	for val.Kind() == reflect.Pointer {
 		if val.IsNil() {
-			return encodeJSON(w, nil, false)
+			return encodeJSON(w, []any{}, false)
 		}
 		val = val.Elem()
 	}
 
 	switch val.Kind() {
 	case reflect.Slice, reflect.Array:
+		if val.IsNil() {
+			return encodeJSON(w, []any{}, false)
+		}
 		for i := 0; i < val.Len(); i++ {
 			if err := encodeJSON(w, val.Index(i).Interface(), false); err != nil {
 				return err
