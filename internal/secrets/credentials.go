@@ -2,6 +2,7 @@ package secrets
 
 import (
 	"encoding/json"
+	"regexp"
 	"strings"
 	"time"
 )
@@ -51,6 +52,8 @@ func (c *Credentials) AuthorizationHeaderValue() string {
 	return scheme + " " + c.Token
 }
 
+var apiVersionRe = regexp.MustCompile(`/api/v\d+`)
+
 func normalizeBaseURLToVersion(baseURL, version string) string {
 	u := strings.TrimSpace(baseURL)
 	u = strings.TrimRight(u, "/")
@@ -63,15 +66,13 @@ func normalizeBaseURLToVersion(baseURL, version string) string {
 		u = "https://" + u
 	}
 
-	// If caller provided /api/v1 or /api/v2 already, normalize it.
-	u = strings.Replace(u, "/api/v1", "/api/"+version, 1)
-	u = strings.Replace(u, "/api/v2", "/api/"+version, 1)
-
-	// If no /api/vN present, assume base host and append.
-	if !strings.Contains(u, "/api/v") {
-		u = u + "/api/" + version
+	// Replace any existing /api/vN with the target version.
+	if apiVersionRe.MatchString(u) {
+		return apiVersionRe.ReplaceAllString(u, "/api/"+version)
 	}
-	return u
+
+	// No /api/vN present — assume base host and append.
+	return u + "/api/" + version
 }
 
 func (c *Credentials) Marshal() ([]byte, error) {

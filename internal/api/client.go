@@ -141,43 +141,16 @@ func (c *Client) do(ctx context.Context, method, path string, body io.Reader, re
 }
 
 func (c *Client) doWithOpts(ctx context.Context, method, path string, body io.Reader, result any, opts *ListOptions) error {
-	url := c.buildURL(path, opts)
-
-	req, err := http.NewRequestWithContext(ctx, method, url, body)
-	if err != nil {
-		return err
-	}
-
-	req.Header.Set("Authorization", c.creds.AuthorizationHeaderValue())
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Accept", "application/json")
-
-	resp, err := c.httpClient.Do(req)
-	if err != nil {
-		return err
-	}
-	defer func() { _ = resp.Body.Close() }()
-
-	if resp.StatusCode >= 400 {
-		body, _ := io.ReadAll(resp.Body)
-		apiErr := sanitizeErrorResponse(resp.StatusCode, body, c.debug)
-		if c.debug {
-			// Helpful context for diagnosing bad base URLs/tenants without printing credentials.
-			return fmt.Errorf("%s %s: %w", method, url, apiErr)
-		}
-		return apiErr
-	}
-
-	if result != nil {
-		return json.NewDecoder(resp.Body).Decode(result)
-	}
-	return nil
+	return c.doRequest(ctx, method, c.buildURL(path, opts), body, result)
 }
 
 func (c *Client) doV2(ctx context.Context, method, path string, body io.Reader, result any) error {
-	// v2 API uses a different base URL structure
-	url := strings.Replace(c.creds.BaseURL(), "/api/v1", "/api/v2", 1) + path
+	return c.doRequest(ctx, method, c.creds.BaseURLV2()+path, body, result)
+}
 
+// doRequest executes an HTTP request and decodes the response.
+// Shared by doWithOpts (v1) and doV2 to keep error handling and header logic in one place.
+func (c *Client) doRequest(ctx context.Context, method, url string, body io.Reader, result any) error {
 	req, err := http.NewRequestWithContext(ctx, method, url, body)
 	if err != nil {
 		return err
@@ -194,8 +167,8 @@ func (c *Client) doV2(ctx context.Context, method, path string, body io.Reader, 
 	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode >= 400 {
-		body, _ := io.ReadAll(resp.Body)
-		apiErr := sanitizeErrorResponse(resp.StatusCode, body, c.debug)
+		respBody, _ := io.ReadAll(resp.Body)
+		apiErr := sanitizeErrorResponse(resp.StatusCode, respBody, c.debug)
 		if c.debug {
 			return fmt.Errorf("%s %s: %w", method, url, apiErr)
 		}

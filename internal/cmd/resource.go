@@ -204,7 +204,7 @@ Examples:
 	cmd.Flags().StringArrayVarP(&filters, "filter", "f", nil, "Filter expression (can be repeated)")
 	cmd.Flags().StringArrayVarP(&joins, "join", "j", nil, "Join related resource (can be repeated)")
 	cmd.Flags().StringVar(&sortField, "sort", "", "Sort by field")
-	cmd.Flags().IntVar(&limit, "limit", 500, "Maximum results to return")
+	cmd.Flags().IntVar(&limit, "limit", 0, "Maximum results to return (0 = unlimited)")
 	cmd.Flags().IntVar(&start, "start", 0, "Starting offset for pagination")
 
 	return cmd
