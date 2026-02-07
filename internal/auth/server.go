@@ -296,25 +296,35 @@ func (s *SetupServer) validateCredentials(ctx context.Context, install, geo, tok
 	return nil
 }
 
-func (s *SetupServer) handleValidate(w http.ResponseWriter, r *http.Request) {
+// validatedCredentials holds parsed and validated credentials from a request.
+type validatedCredentials struct {
+	Install string
+	Geo     string
+	Token   string
+}
+
+// validateRequest performs common request validation (method, CSRF, rate limit,
+// body parsing, field validation, credential check). Returns nil and writes
+// an HTTP error response if validation fails.
+func (s *SetupServer) validateRequest(w http.ResponseWriter, r *http.Request, endpoint string) *validatedCredentials {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
+		return nil
 	}
 
 	providedToken := r.Header.Get("X-CSRF-Token")
 	if subtle.ConstantTimeCompare([]byte(providedToken), []byte(s.csrfToken)) != 1 {
 		http.Error(w, "Invalid CSRF token", http.StatusForbidden)
-		return
+		return nil
 	}
 
 	clientIP := getClientIP(r)
-	if err := s.limiter.check(clientIP, "/validate"); err != nil {
+	if err := s.limiter.check(clientIP, endpoint); err != nil {
 		writeJSON(w, http.StatusTooManyRequests, map[string]any{
 			"success": false,
 			"error":   err.Error(),
 		})
-		return
+		return nil
 	}
 
 	var req struct {
@@ -328,7 +338,7 @@ func (s *SetupServer) handleValidate(w http.ResponseWriter, r *http.Request) {
 			"success": false,
 			"error":   "Invalid request body",
 		})
-		return
+		return nil
 	}
 
 	req.Install = strings.TrimSpace(req.Install)
@@ -340,21 +350,21 @@ func (s *SetupServer) handleValidate(w http.ResponseWriter, r *http.Request) {
 			"success": false,
 			"error":   err.Error(),
 		})
-		return
+		return nil
 	}
 	if err := ValidateGeo(req.Geo); err != nil {
 		writeJSON(w, http.StatusOK, map[string]any{
 			"success": false,
 			"error":   err.Error(),
 		})
-		return
+		return nil
 	}
 	if err := ValidateToken(req.Token); err != nil {
 		writeJSON(w, http.StatusOK, map[string]any{
 			"success": false,
 			"error":   err.Error(),
 		})
-		return
+		return nil
 	}
 
 	if err := s.validate(r.Context(), req.Install, req.Geo, req.Token); err != nil {
@@ -362,92 +372,39 @@ func (s *SetupServer) handleValidate(w http.ResponseWriter, r *http.Request) {
 			"success": false,
 			"error":   err.Error(),
 		})
-		return
+		return nil
 	}
 
-	writeJSON(w, http.StatusOK, map[string]any{
-		"success": true,
-		"message": "Connection successful!",
-	})
+	return &validatedCredentials{
+		Install: req.Install,
+		Geo:     req.Geo,
+		Token:   req.Token,
+	}
+}
+
+func (s *SetupServer) handleValidate(w http.ResponseWriter, r *http.Request) {
+	if creds := s.validateRequest(w, r, "/validate"); creds != nil {
+		writeJSON(w, http.StatusOK, map[string]any{
+			"success": true,
+			"message": "Connection successful!",
+		})
+	}
 }
 
 func (s *SetupServer) handleSubmit(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+	creds := s.validateRequest(w, r, "/submit")
+	if creds == nil {
 		return
 	}
 
-	providedToken := r.Header.Get("X-CSRF-Token")
-	if subtle.ConstantTimeCompare([]byte(providedToken), []byte(s.csrfToken)) != 1 {
-		http.Error(w, "Invalid CSRF token", http.StatusForbidden)
-		return
-	}
-
-	clientIP := getClientIP(r)
-	if err := s.limiter.check(clientIP, "/submit"); err != nil {
-		writeJSON(w, http.StatusTooManyRequests, map[string]any{
-			"success": false,
-			"error":   err.Error(),
-		})
-		return
-	}
-
-	var req struct {
-		Install string `json:"install"`
-		Geo     string `json:"geo"`
-		Token   string `json:"token"`
-	}
-
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeJSON(w, http.StatusBadRequest, map[string]any{
-			"success": false,
-			"error":   "Invalid request body",
-		})
-		return
-	}
-
-	req.Install = strings.TrimSpace(req.Install)
-	req.Geo = strings.TrimSpace(req.Geo)
-	req.Token = strings.TrimSpace(req.Token)
-
-	if err := ValidateInstall(req.Install); err != nil {
-		writeJSON(w, http.StatusOK, map[string]any{
-			"success": false,
-			"error":   err.Error(),
-		})
-		return
-	}
-	if err := ValidateGeo(req.Geo); err != nil {
-		writeJSON(w, http.StatusOK, map[string]any{
-			"success": false,
-			"error":   err.Error(),
-		})
-		return
-	}
-	if err := ValidateToken(req.Token); err != nil {
-		writeJSON(w, http.StatusOK, map[string]any{
-			"success": false,
-			"error":   err.Error(),
-		})
-		return
-	}
-
-	if err := s.validate(r.Context(), req.Install, req.Geo, req.Token); err != nil {
-		writeJSON(w, http.StatusOK, map[string]any{
-			"success": false,
-			"error":   err.Error(),
-		})
-		return
-	}
-
-	creds := &secrets.Credentials{
-		Token:     req.Token,
-		Install:   req.Install,
-		Geo:       req.Geo,
+	stored := &secrets.Credentials{
+		Token:     creds.Token,
+		Install:   creds.Install,
+		Geo:       creds.Geo,
 		CreatedAt: time.Now(),
 	}
 
-	if err := s.store.Set(creds); err != nil {
+	if err := s.store.Set(stored); err != nil {
 		slog.Error("failed to save credentials", "error", err)
 		writeJSON(w, http.StatusOK, map[string]any{
 			"success": false,
@@ -458,15 +415,15 @@ func (s *SetupServer) handleSubmit(w http.ResponseWriter, r *http.Request) {
 
 	s.pendingMu.Lock()
 	s.pendingResult = &SetupResult{
-		Install: req.Install,
-		Geo:     req.Geo,
+		Install: creds.Install,
+		Geo:     creds.Geo,
 	}
 	s.pendingMu.Unlock()
 
 	writeJSON(w, http.StatusOK, map[string]any{
 		"success": true,
-		"install": req.Install,
-		"geo":     req.Geo,
+		"install": creds.Install,
+		"geo":     creds.Geo,
 	})
 }
 
