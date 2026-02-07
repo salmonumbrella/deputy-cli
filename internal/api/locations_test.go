@@ -26,7 +26,7 @@ func TestLocationsService_List(t *testing.T) {
 				Id:          1,
 				CompanyName: "Main Office",
 				Code:        "MO",
-				Address:     "123 Main St",
+				Address:     json.RawMessage(`"123 Main St"`),
 				Active:      true,
 				Timezone:    "Australia/Sydney",
 			},
@@ -34,7 +34,7 @@ func TestLocationsService_List(t *testing.T) {
 				Id:          2,
 				CompanyName: "Branch Office",
 				Code:        "BO",
-				Address:     "456 Branch Ave",
+				Address:     json.RawMessage(`"456 Branch Ave"`),
 				Active:      true,
 				Timezone:    "Australia/Melbourne",
 			},
@@ -50,7 +50,7 @@ func TestLocationsService_List(t *testing.T) {
 	assert.Equal(t, 1, locations[0].Id)
 	assert.Equal(t, "Main Office", locations[0].CompanyName)
 	assert.Equal(t, "MO", locations[0].Code)
-	assert.Equal(t, "123 Main St", locations[0].Address)
+	assert.Equal(t, "123 Main St", locations[0].AddressString())
 	assert.True(t, locations[0].Active)
 	assert.Equal(t, "Australia/Sydney", locations[0].Timezone)
 	assert.Equal(t, 2, locations[1].Id)
@@ -70,7 +70,7 @@ func TestLocationsService_List_FallbackCompany(t *testing.T) {
 					Id:          10,
 					CompanyName: "Fallback Location",
 					Code:        "FB",
-					Address:     "1 Fallback Rd",
+					Address:     json.RawMessage(`"1 Fallback Rd"`),
 					Active:      true,
 					Timezone:    "Australia/Sydney",
 				},
@@ -131,7 +131,7 @@ func TestLocationsService_Get(t *testing.T) {
 			Id:          42,
 			CompanyName: "Test Location",
 			Code:        "TL",
-			Address:     "789 Test Blvd",
+			Address:     json.RawMessage(`"789 Test Blvd"`),
 			Active:      true,
 			Timezone:    "Australia/Perth",
 		})
@@ -145,7 +145,7 @@ func TestLocationsService_Get(t *testing.T) {
 	assert.Equal(t, 42, location.Id)
 	assert.Equal(t, "Test Location", location.CompanyName)
 	assert.Equal(t, "TL", location.Code)
-	assert.Equal(t, "789 Test Blvd", location.Address)
+	assert.Equal(t, "789 Test Blvd", location.AddressString())
 	assert.True(t, location.Active)
 	assert.Equal(t, "Australia/Perth", location.Timezone)
 }
@@ -189,7 +189,7 @@ func TestLocationsService_Create(t *testing.T) {
 			Id:          100,
 			CompanyName: "New Location",
 			Code:        "NL",
-			Address:     "100 New St",
+			Address:     json.RawMessage(`"100 New St"`),
 			Active:      true,
 			Timezone:    "Australia/Brisbane",
 		})
@@ -210,7 +210,7 @@ func TestLocationsService_Create(t *testing.T) {
 	assert.Equal(t, 100, location.Id)
 	assert.Equal(t, "New Location", location.CompanyName)
 	assert.Equal(t, "NL", location.Code)
-	assert.Equal(t, "100 New St", location.Address)
+	assert.Equal(t, "100 New St", location.AddressString())
 	assert.True(t, location.Active)
 	assert.Equal(t, "Australia/Brisbane", location.Timezone)
 }
@@ -293,7 +293,7 @@ func TestLocationsService_Update(t *testing.T) {
 			Id:          42,
 			CompanyName: "Updated Location",
 			Code:        "UL",
-			Address:     "200 Updated St",
+			Address:     json.RawMessage(`"200 Updated St"`),
 			Active:      true,
 			Timezone:    "Australia/Darwin",
 		})
@@ -314,7 +314,7 @@ func TestLocationsService_Update(t *testing.T) {
 	assert.Equal(t, 42, location.Id)
 	assert.Equal(t, "Updated Location", location.CompanyName)
 	assert.Equal(t, "UL", location.Code)
-	assert.Equal(t, "200 Updated St", location.Address)
+	assert.Equal(t, "200 Updated St", location.AddressString())
 	assert.True(t, location.Active)
 	assert.Equal(t, "Australia/Darwin", location.Timezone)
 }
@@ -340,7 +340,7 @@ func TestLocationsService_Update_PartialUpdate(t *testing.T) {
 			Id:          42,
 			CompanyName: "Only Name Updated",
 			Code:        "OLD",
-			Address:     "Old Address",
+			Address:     json.RawMessage(`"Old Address"`),
 			Active:      true,
 			Timezone:    "Australia/Sydney",
 		})
@@ -604,17 +604,17 @@ func TestLocationsService_List_FallbackIntegerAddress(t *testing.T) {
 func TestLocation_AddressString(t *testing.T) {
 	tests := []struct {
 		name     string
-		address  interface{}
+		address  json.RawMessage
 		expected string
 	}{
 		{
 			name:     "string address",
-			address:  "123 Main St",
+			address:  json.RawMessage(`"123 Main St"`),
 			expected: "123 Main St",
 		},
 		{
 			name:     "integer address (as float64 from JSON)",
-			address:  float64(456),
+			address:  json.RawMessage(`456`),
 			expected: "(ref:456)",
 		},
 		{
@@ -624,7 +624,12 @@ func TestLocation_AddressString(t *testing.T) {
 		},
 		{
 			name:     "empty string address",
-			address:  "",
+			address:  json.RawMessage(`""`),
+			expected: "",
+		},
+		{
+			name:     "null address",
+			address:  json.RawMessage(`null`),
 			expected: "",
 		},
 	}

@@ -9,29 +9,32 @@ import (
 )
 
 type Location struct {
-	Id          int         `json:"Id"`
-	CompanyName string      `json:"CompanyName"`
-	Code        string      `json:"Code"`
-	CompanyCode string      `json:"CompanyCode,omitempty"`
-	Address     interface{} `json:"Address"` // Can be string or int (foreign key)
-	Active      bool        `json:"Active"`
-	Timezone    string      `json:"Timezone"`
+	Id          int             `json:"Id"`
+	CompanyName string          `json:"CompanyName"`
+	Code        string          `json:"Code"`
+	CompanyCode string          `json:"CompanyCode,omitempty"`
+	Address     json.RawMessage `json:"Address"` // Can be string or int (foreign key)
+	Active      bool            `json:"Active"`
+	Timezone    string          `json:"Timezone"`
 }
 
 // AddressString returns Address as a string for display purposes.
 // When Address is an integer (foreign key to Address table), returns "(ref:N)".
 func (l *Location) AddressString() string {
-	if l.Address == nil {
+	if len(l.Address) == 0 || string(l.Address) == "null" {
 		return ""
 	}
-	switch v := l.Address.(type) {
-	case string:
-		return v
-	case float64:
-		return fmt.Sprintf("(ref:%d)", int(v))
-	default:
-		return fmt.Sprintf("%v", v)
+	// Try string first
+	var s string
+	if err := json.Unmarshal(l.Address, &s); err == nil {
+		return s
 	}
+	// Try number (foreign key)
+	var n float64
+	if err := json.Unmarshal(l.Address, &n); err == nil {
+		return fmt.Sprintf("(ref:%d)", int(n))
+	}
+	return string(l.Address)
 }
 
 type LocationsService struct {

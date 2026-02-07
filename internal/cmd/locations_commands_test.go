@@ -25,7 +25,7 @@ func TestLocationsGetCommand_WithMockClient(t *testing.T) {
 				Id:          123,
 				CompanyName: "HQ",
 				Code:        "HQ",
-				Address:     "1 Main St",
+				Address:     json.RawMessage(`"1 Main St"`),
 				Timezone:    "UTC",
 				Active:      true,
 			})
