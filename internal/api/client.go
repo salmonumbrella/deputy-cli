@@ -57,24 +57,32 @@ func sanitizeErrorResponse(statusCode int, body []byte, debug bool) error {
 	code := CodeFromStatus(statusCode)
 	retryable := IsRetryable(statusCode)
 
-	// Try to parse structured error from API
-	var structuredErr struct {
-		Error struct {
-			Code    int    `json:"code"`
-			Message string `json:"message"`
-		} `json:"error"`
+	var message string
+
+	// Try to parse common JSON error shapes without being strict about types.
+	// Deputy (and proxies) can vary response schemas across endpoints.
+	var structuredAny map[string]any
+	if err := json.Unmarshal(body, &structuredAny); err == nil {
+		if errObj, ok := structuredAny["error"].(map[string]any); ok {
+			if msg, ok := errObj["message"].(string); ok && strings.TrimSpace(msg) != "" {
+				message = msg
+			} else if msg, ok := structuredAny["message"].(string); ok && strings.TrimSpace(msg) != "" {
+				message = msg
+			}
+		} else if msg, ok := structuredAny["message"].(string); ok && strings.TrimSpace(msg) != "" {
+			message = msg
+		}
 	}
 
-	var message string
-	if err := json.Unmarshal(body, &structuredErr); err == nil && structuredErr.Error.Message != "" {
-		message = structuredErr.Error.Message
-	} else if debug && len(body) > 0 {
+	if message == "" && debug && len(body) > 0 {
 		bodyStr := string(body)
 		if len(bodyStr) > maxErrorBodyLen {
 			bodyStr = bodyStr[:maxErrorBodyLen] + "..."
 		}
 		message = bodyStr
-	} else {
+	}
+
+	if message == "" {
 		// Fall back to generic messages
 		genericMessages := map[int]string{
 			400: "bad request",
@@ -140,7 +148,7 @@ func (c *Client) doWithOpts(ctx context.Context, method, path string, body io.Re
 		return err
 	}
 
-	req.Header.Set("Authorization", "Bearer "+c.creds.Token)
+	req.Header.Set("Authorization", c.creds.AuthorizationHeaderValue())
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Accept", "application/json")
 
@@ -170,7 +178,7 @@ func (c *Client) doV2(ctx context.Context, method, path string, body io.Reader, 
 		return err
 	}
 
-	req.Header.Set("Authorization", "Bearer "+c.creds.Token)
+	req.Header.Set("Authorization", c.creds.AuthorizationHeaderValue())
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Accept", "application/json")
 

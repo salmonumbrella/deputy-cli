@@ -64,6 +64,13 @@ deputy me info
 ### Environment Variables
 
 - `DEPUTY_DEBUG` - Enable debug logging
+- `DEPUTY_TOKEN` - Deputy API token (bypasses keychain when set)
+- `DEPUTY_INSTALL` - Deputy install name (used if `DEPUTY_BASE_URL` not set)
+- `DEPUTY_GEO` - Deputy region subdomain (optional; defaults to `install.deputy.com` if omitted)
+- `DEPUTY_BASE_URL` - Override API base URL (host or `/api/v1` URL)
+- `DEPUTY_AUTH_SCHEME` - Authorization scheme (default `Bearer`, can be `OAuth`)
+- `DEPUTY_NO_KEYCHAIN` - Set to `1` to disable keychain credential lookup (env/.env only)
+- `DEPUTY_ENV_FILE` - Path to a `.env` file to load (defaults to `./.env` if present)
 - `NO_COLOR` - Disable colored output (standard convention)
 
 ### Credential Storage
@@ -72,6 +79,17 @@ Credentials are stored securely in your system's keychain:
 - **macOS**: Keychain Access
 - **Linux**: Secret Service (GNOME Keyring, KWallet)
 - **Windows**: Credential Manager
+
+You can also skip keychain entirely by using a local `.env` file:
+
+```bash
+cat > .env <<'EOF'
+DEPUTY_TOKEN=your_token_here
+DEPUTY_INSTALL=your_install
+DEPUTY_GEO=na
+EOF
+deputy --no-keychain auth test
+```
 
 ## Error Handling
 

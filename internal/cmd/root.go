@@ -7,6 +7,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/salmonumbrella/deputy-cli/internal/config"
 	"github.com/salmonumbrella/deputy-cli/internal/iocontext"
 	"github.com/salmonumbrella/deputy-cli/internal/outfmt"
 )
@@ -18,11 +19,12 @@ var (
 )
 
 type globalFlags struct {
-	Output  string
-	Debug   bool
-	Query   string
-	Raw     bool
-	NoColor bool
+	Output     string
+	Debug      bool
+	Query      string
+	Raw        bool
+	NoColor    bool
+	NoKeychain bool
 }
 
 var flags globalFlags
@@ -34,6 +36,9 @@ func NewRootCmd() *cobra.Command {
 		Long:    "A command-line interface for interacting with the Deputy API.\nDesigned for both human users and AI agent automation.",
 		Version: Version,
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+			// Load .env once (if present) to support DEPUTY_TOKEN/DEPUTY_INSTALL/etc.
+			config.LoadDotenv()
+
 			ctx := cmd.Context()
 			// Preserve existing IO if already set (e.g., in tests), otherwise use defaults
 			if !iocontext.HasIO(ctx) {
@@ -50,6 +55,7 @@ func NewRootCmd() *cobra.Command {
 			ctx = outfmt.WithQuery(ctx, flags.Query)
 			ctx = outfmt.WithRaw(ctx, flags.Raw)
 			ctx = WithDebug(ctx, flags.Debug)
+			ctx = WithNoKeychain(ctx, flags.NoKeychain)
 			cmd.SetContext(ctx)
 			return nil
 		},
@@ -64,6 +70,7 @@ func NewRootCmd() *cobra.Command {
 	cmd.PersistentFlags().StringVarP(&flags.Query, "query", "q", "", "JQ filter for JSON output")
 	cmd.PersistentFlags().BoolVar(&flags.Raw, "raw", false, "Output JSON Lines (one object per line)")
 	cmd.PersistentFlags().BoolVar(&flags.NoColor, "no-color", false, "Disable colored output")
+	cmd.PersistentFlags().BoolVar(&flags.NoKeychain, "no-keychain", false, "Do not read credentials from keychain (use env/.env only)")
 
 	cmd.AddCommand(newVersionCmd())
 	cmd.AddCommand(newCompletionCmd())

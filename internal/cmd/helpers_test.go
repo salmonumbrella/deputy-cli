@@ -144,7 +144,7 @@ func TestGetClient(t *testing.T) {
 		mockStore := secrets.NewMockStore()
 		newKeychainStore = func() (secrets.Store, error) { return mockStore, nil }
 
-		client, err := getClient()
+		client, err := getClient(context.Background())
 
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "not authenticated")
@@ -155,7 +155,7 @@ func TestGetClient(t *testing.T) {
 		expectedErr := errors.New("store init failed")
 		newKeychainStore = func() (secrets.Store, error) { return nil, expectedErr }
 
-		client, err := getClient()
+		client, err := getClient(context.Background())
 
 		require.Error(t, err)
 		assert.Equal(t, expectedErr, err)
@@ -171,7 +171,7 @@ func TestGetClient(t *testing.T) {
 		})
 		newKeychainStore = func() (secrets.Store, error) { return mockStore, nil }
 
-		client, err := getClient()
+		client, err := getClient(context.Background())
 
 		require.NoError(t, err)
 		assert.NotNil(t, client)

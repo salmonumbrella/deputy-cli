@@ -22,6 +22,11 @@ type KeychainStore struct {
 func NewKeychainStore() (*KeychainStore, error) {
 	ring, err := keyring.Open(keyring.Config{
 		ServiceName: config.KeychainService,
+		// macOS: avoid repeated permission prompts by trusting the application in the ACL.
+		// These fields are ignored by non-macOS backends.
+		KeychainTrustApplication:       true,
+		KeychainSynchronizable:         false,
+		KeychainAccessibleWhenUnlocked: true,
 	})
 	if err != nil {
 		return nil, err

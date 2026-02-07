@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
 	"strings"
 	"time"
 
@@ -84,6 +85,23 @@ func DebugFromContext(ctx context.Context) bool {
 	return false
 }
 
+// Context key for "no keychain" mode.
+type noKeychainKey struct{}
+
+func WithNoKeychain(ctx context.Context, noKeychain bool) context.Context {
+	return context.WithValue(ctx, noKeychainKey{}, noKeychain)
+}
+
+func NoKeychainFromContext(ctx context.Context) bool {
+	if v, ok := ctx.Value(noKeychainKey{}).(bool); ok {
+		return v
+	}
+	if s := strings.TrimSpace(os.Getenv("DEPUTY_NO_KEYCHAIN")); s != "" && s != "0" && strings.ToLower(s) != "false" {
+		return true
+	}
+	return false
+}
+
 // ClientFactory creates API clients - allows injection for testing
 type ClientFactory interface {
 	NewClient(ctx context.Context) (*api.Client, error)
@@ -94,7 +112,7 @@ type DefaultClientFactory struct{}
 
 // NewClient creates an API client using keychain credentials
 func (f DefaultClientFactory) NewClient(ctx context.Context) (*api.Client, error) {
-	return getClient()
+	return getClient(ctx)
 }
 
 // Context key for injecting client factory
@@ -126,7 +144,43 @@ func getClientFromContext(ctx context.Context) (*api.Client, error) {
 	return client, nil
 }
 
-func getClient() (*api.Client, error) {
+func getClient(ctx context.Context) (*api.Client, error) {
+	creds, err := loadCredentialsFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return api.NewClient(creds), nil
+}
+
+var newKeychainStore = func() (secrets.Store, error) {
+	return secrets.NewKeychainStore()
+}
+
+func loadCredentialsFromContext(ctx context.Context) (*secrets.Credentials, error) {
+	// 1) If tests injected a store via WithStore(ctx, store), respect it.
+	if store, ok := ctx.Value(storeKey{}).(secrets.Store); ok {
+		creds, err := store.Get()
+		if err != nil {
+			if errors.Is(err, secrets.ErrNotFound) {
+				return nil, errors.New("not authenticated - set DEPUTY_TOKEN or run 'deputy auth add' first")
+			}
+			return nil, err
+		}
+		return creds, nil
+	}
+
+	// 2) Environment (including .env) avoids keychain prompts.
+	if creds, ok, err := secrets.FromEnv(); err != nil {
+		return nil, err
+	} else if ok {
+		return creds, nil
+	}
+
+	// 3) Keychain fallback unless explicitly disabled.
+	if NoKeychainFromContext(ctx) {
+		return nil, errors.New("not authenticated - keychain disabled (set DEPUTY_TOKEN in env/.env)")
+	}
+
 	store, err := newKeychainStore()
 	if err != nil {
 		return nil, err
@@ -135,16 +189,11 @@ func getClient() (*api.Client, error) {
 	creds, err := store.Get()
 	if err != nil {
 		if errors.Is(err, secrets.ErrNotFound) {
-			return nil, errors.New("not authenticated - run 'deputy auth add' first")
+			return nil, errors.New("not authenticated - set DEPUTY_TOKEN or run 'deputy auth add' first")
 		}
 		return nil, err
 	}
-
-	return api.NewClient(creds), nil
-}
-
-var newKeychainStore = func() (secrets.Store, error) {
-	return secrets.NewKeychainStore()
+	return creds, nil
 }
 
 // applyPagination applies offset and limit to a slice.

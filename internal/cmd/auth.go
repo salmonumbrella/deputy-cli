@@ -201,16 +201,11 @@ func newAuthStatusCmd() *cobra.Command {
 		Use:   "status",
 		Short: "Show current authentication status",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			store, err := getStore(cmd.Context())
+			creds, err := loadCredentialsFromContext(cmd.Context())
 			if err != nil {
-				return fmt.Errorf("failed to open keychain: %w", err)
-			}
-
-			creds, err := store.Get()
-			if err != nil {
-				if errors.Is(err, secrets.ErrNotFound) {
+				if strings.Contains(err.Error(), "not authenticated") {
 					io := iocontext.FromContext(cmd.Context())
-					_, _ = fmt.Fprintln(io.Out, "Not authenticated. Run 'deputy auth add' to configure.")
+					_, _ = fmt.Fprintln(io.Out, "Not authenticated. Set DEPUTY_TOKEN (env/.env) or run 'deputy auth add' to configure.")
 					return nil
 				}
 				return err
@@ -286,16 +281,8 @@ func newAuthTestCmd() *cobra.Command {
 		Use:   "test",
 		Short: "Test authentication by calling /me endpoint",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			store, err := getStore(cmd.Context())
+			creds, err := loadCredentialsFromContext(cmd.Context())
 			if err != nil {
-				return fmt.Errorf("failed to open keychain: %w", err)
-			}
-
-			creds, err := store.Get()
-			if err != nil {
-				if errors.Is(err, secrets.ErrNotFound) {
-					return errors.New("not authenticated - run 'deputy auth add' first")
-				}
 				return err
 			}
 
