@@ -126,3 +126,226 @@ func TestUnmarshalCredentials_InvalidJSON(t *testing.T) {
 	_, err := UnmarshalCredentials([]byte(`{invalid}`))
 	assert.Error(t, err)
 }
+
+func TestNormalizeBaseURLToVersion(t *testing.T) {
+	tests := []struct {
+		name    string
+		baseURL string
+		version string
+		want    string
+	}{
+		{
+			name:    "empty string",
+			baseURL: "",
+			version: "v1",
+			want:    "",
+		},
+		{
+			name:    "whitespace only",
+			baseURL: "   ",
+			version: "v1",
+			want:    "",
+		},
+		{
+			name:    "host without scheme",
+			baseURL: "mycompany.au.deputy.com/api/v1",
+			version: "v1",
+			want:    "https://mycompany.au.deputy.com/api/v1",
+		},
+		{
+			name:    "host without scheme to v2",
+			baseURL: "mycompany.au.deputy.com/api/v1",
+			version: "v2",
+			want:    "https://mycompany.au.deputy.com/api/v2",
+		},
+		{
+			name:    "URL with /api/v1 to v2",
+			baseURL: "https://mycompany.au.deputy.com/api/v1",
+			version: "v2",
+			want:    "https://mycompany.au.deputy.com/api/v2",
+		},
+		{
+			name:    "URL with /api/v2 to v1",
+			baseURL: "https://mycompany.au.deputy.com/api/v2",
+			version: "v1",
+			want:    "https://mycompany.au.deputy.com/api/v1",
+		},
+		{
+			name:    "URL with trailing slash",
+			baseURL: "https://mycompany.au.deputy.com/api/v1/",
+			version: "v2",
+			want:    "https://mycompany.au.deputy.com/api/v2",
+		},
+		{
+			name:    "URL with no /api/vN",
+			baseURL: "https://mycompany.au.deputy.com",
+			version: "v1",
+			want:    "https://mycompany.au.deputy.com/api/v1",
+		},
+		{
+			name:    "URL with no /api/vN to v2",
+			baseURL: "https://mycompany.au.deputy.com",
+			version: "v2",
+			want:    "https://mycompany.au.deputy.com/api/v2",
+		},
+		{
+			name:    "bare host without scheme or api path",
+			baseURL: "mycompany.au.deputy.com",
+			version: "v1",
+			want:    "https://mycompany.au.deputy.com/api/v1",
+		},
+		{
+			name:    "http scheme preserved",
+			baseURL: "http://localhost:8080/api/v1",
+			version: "v2",
+			want:    "http://localhost:8080/api/v2",
+		},
+		{
+			name:    "higher version number replaced",
+			baseURL: "https://example.com/api/v99",
+			version: "v1",
+			want:    "https://example.com/api/v1",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := normalizeBaseURLToVersion(tt.baseURL, tt.version)
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
+func TestCredentials_BaseURL_EdgeCases(t *testing.T) {
+	tests := []struct {
+		name     string
+		creds    Credentials
+		expected string
+	}{
+		{
+			name:     "install only without geo",
+			creds:    Credentials{Token: "t", Install: "mycompany"},
+			expected: "https://mycompany.deputy.com/api/v1",
+		},
+		{
+			name:     "empty install returns empty",
+			creds:    Credentials{Token: "t"},
+			expected: "",
+		},
+		{
+			name:     "base URL override takes precedence",
+			creds:    Credentials{Token: "t", Install: "mycompany", Geo: "au", BaseURLOverride: "https://custom.example.com/api/v2"},
+			expected: "https://custom.example.com/api/v1",
+		},
+		{
+			name:     "base URL override bare host",
+			creds:    Credentials{Token: "t", BaseURLOverride: "custom.example.com"},
+			expected: "https://custom.example.com/api/v1",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.expected, tt.creds.BaseURL())
+		})
+	}
+}
+
+func TestCredentials_BaseURLV2_EdgeCases(t *testing.T) {
+	tests := []struct {
+		name     string
+		creds    Credentials
+		expected string
+	}{
+		{
+			name:     "install only without geo",
+			creds:    Credentials{Token: "t", Install: "mycompany"},
+			expected: "https://mycompany.deputy.com/api/v2",
+		},
+		{
+			name:     "empty install returns empty",
+			creds:    Credentials{Token: "t"},
+			expected: "",
+		},
+		{
+			name:     "base URL override takes precedence",
+			creds:    Credentials{Token: "t", Install: "mycompany", Geo: "au", BaseURLOverride: "https://custom.example.com/api/v1"},
+			expected: "https://custom.example.com/api/v2",
+		},
+		{
+			name:     "base URL override bare host",
+			creds:    Credentials{Token: "t", BaseURLOverride: "custom.example.com"},
+			expected: "https://custom.example.com/api/v2",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.expected, tt.creds.BaseURLV2())
+		})
+	}
+}
+
+func TestCredentials_AuthorizationHeaderValue(t *testing.T) {
+	tests := []struct {
+		name     string
+		creds    Credentials
+		expected string
+	}{
+		{
+			name:     "default empty scheme uses Bearer",
+			creds:    Credentials{Token: "mytoken"},
+			expected: "Bearer mytoken",
+		},
+		{
+			name:     "explicit Bearer scheme",
+			creds:    Credentials{Token: "mytoken", AuthScheme: "Bearer"},
+			expected: "Bearer mytoken",
+		},
+		{
+			name:     "OAuth scheme",
+			creds:    Credentials{Token: "oauthtoken", AuthScheme: "OAuth"},
+			expected: "OAuth oauthtoken",
+		},
+		{
+			name:     "whitespace-only scheme uses Bearer",
+			creds:    Credentials{Token: "mytoken", AuthScheme: "   "},
+			expected: "Bearer mytoken",
+		},
+		{
+			name:     "scheme with leading/trailing whitespace is trimmed",
+			creds:    Credentials{Token: "mytoken", AuthScheme: "  Bearer  "},
+			expected: "Bearer mytoken",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.expected, tt.creds.AuthorizationHeaderValue())
+		})
+	}
+}
+
+func TestCredentials_MarshalRoundTrip(t *testing.T) {
+	original := Credentials{
+		Token:           "round-trip-token",
+		Install:         "testco",
+		Geo:             "na",
+		BaseURLOverride: "https://custom.example.com/api/v1",
+		AuthScheme:      "OAuth",
+		CreatedAt:       time.Date(2024, 6, 15, 12, 0, 0, 0, time.UTC),
+	}
+
+	data, err := original.Marshal()
+	assert.NoError(t, err)
+
+	restored, err := UnmarshalCredentials(data)
+	assert.NoError(t, err)
+
+	assert.Equal(t, original.Token, restored.Token)
+	assert.Equal(t, original.Install, restored.Install)
+	assert.Equal(t, original.Geo, restored.Geo)
+	assert.Equal(t, original.BaseURLOverride, restored.BaseURLOverride)
+	assert.Equal(t, original.AuthScheme, restored.AuthScheme)
+	assert.Equal(t, original.CreatedAt.Unix(), restored.CreatedAt.Unix())
+}

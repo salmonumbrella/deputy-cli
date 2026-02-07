@@ -44,3 +44,38 @@ func TestEnsureConfigDir(t *testing.T) {
 	assert.NoError(t, statErr)
 	assert.True(t, info.IsDir())
 }
+
+func TestEnsureConfigDir_Idempotent(t *testing.T) {
+	tmpDir := t.TempDir()
+	customDir := filepath.Join(tmpDir, "deputy-config-idem")
+	t.Setenv("DEPUTY_CONFIG_DIR", customDir)
+
+	// Call twice; both should succeed without error.
+	err := EnsureConfigDir()
+	assert.NoError(t, err)
+
+	err = EnsureConfigDir()
+	assert.NoError(t, err)
+
+	info, statErr := os.Stat(customDir)
+	assert.NoError(t, statErr)
+	assert.True(t, info.IsDir())
+}
+
+func TestEnsureConfigDir_Permissions(t *testing.T) {
+	tmpDir := t.TempDir()
+	customDir := filepath.Join(tmpDir, "deputy-config-perms")
+	t.Setenv("DEPUTY_CONFIG_DIR", customDir)
+
+	err := EnsureConfigDir()
+	assert.NoError(t, err)
+
+	info, statErr := os.Stat(customDir)
+	assert.NoError(t, statErr)
+	// MkdirAll with 0700 should give us rwx------ (owner only).
+	assert.Equal(t, os.FileMode(0o700), info.Mode().Perm())
+}
+
+func TestAppName(t *testing.T) {
+	assert.Equal(t, "deputy-cli", AppName)
+}
