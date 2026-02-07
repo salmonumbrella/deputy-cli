@@ -231,13 +231,7 @@ func TestRootCmd_UnknownCommand(t *testing.T) {
 }
 
 func TestExecute(t *testing.T) {
-	// Execute() creates a new root command and runs it with context.Background()
-	// Since it operates on real stdin/stdout, we test via NewRootCmd instead
-
 	t.Run("execute function exists and is callable", func(t *testing.T) {
-		// We can verify Execute exists and returns an error type
-		// Can't easily test without side effects on real stdout/stderr
-		// The function signature is: func Execute() error
 		fn := Execute
 		assert.NotNil(t, fn)
 	})
@@ -245,38 +239,40 @@ func TestExecute(t *testing.T) {
 
 func TestExecute_UsesArgs(t *testing.T) {
 	oldArgs := os.Args
-	oldFlags := flags
-	defer func() {
-		os.Args = oldArgs
-		flags = oldFlags
-	}()
+	defer func() { os.Args = oldArgs }()
 
 	os.Args = []string{"deputy", "version"}
-	err := Execute()
-	require.NoError(t, err)
+	result := Execute()
+	require.NoError(t, result.Err)
 }
 
 func TestExecute_UnknownCommand(t *testing.T) {
 	oldArgs := os.Args
-	oldFlags := flags
-	defer func() {
-		os.Args = oldArgs
-		flags = oldFlags
-	}()
+	defer func() { os.Args = oldArgs }()
 
 	os.Args = []string{"deputy", "not-a-command"}
-	err := Execute()
-	require.Error(t, err)
+	result := Execute()
+	require.Error(t, result.Err)
 }
 
-func TestIsDebug(t *testing.T) {
-	oldFlags := flags
-	defer func() { flags = oldFlags }()
+func TestExecute_ReturnsJSONOutput(t *testing.T) {
+	oldArgs := os.Args
+	defer func() { os.Args = oldArgs }()
 
-	flags.Debug = true
-	assert.True(t, IsDebug())
-	flags.Debug = false
-	assert.False(t, IsDebug())
+	os.Args = []string{"deputy", "--output", "json", "version"}
+	result := Execute()
+	require.NoError(t, result.Err)
+	assert.True(t, result.JSONOutput)
+}
+
+func TestExecute_ReturnsDebug(t *testing.T) {
+	oldArgs := os.Args
+	defer func() { os.Args = oldArgs }()
+
+	os.Args = []string{"deputy", "--debug", "version"}
+	result := Execute()
+	require.NoError(t, result.Err)
+	assert.True(t, result.Debug)
 }
 
 func TestRootCmd_HelpForSubcommands(t *testing.T) {

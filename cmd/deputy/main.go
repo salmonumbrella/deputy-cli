@@ -16,13 +16,14 @@ var (
 )
 
 func main() {
-	if err := executeFunc(); err != nil {
-		if cmd.IsJSONOutput() {
+	result := executeFunc()
+	if result.Err != nil {
+		if result.JSONOutput {
 			// JSON mode: structured error to stdout
-			_, _ = fmt.Fprintln(outWriter, cmd.FormatErrorJSON(err))
+			_, _ = fmt.Fprintln(outWriter, cmd.FormatErrorJSON(result.Err))
 		} else {
 			// Text mode: human-readable error to stderr
-			_, _ = fmt.Fprintf(errWriter, "Error: %s\n", cmd.FormatError(err, cmd.IsDebug()))
+			_, _ = fmt.Fprintf(errWriter, "Error: %s\n", cmd.FormatError(result.Err, result.Debug))
 		}
 		exitFunc(1)
 	}

@@ -29,7 +29,9 @@ func TestMain_ErrorPath(t *testing.T) {
 		errWriter = oldErrWriter
 	}()
 
-	executeFunc = func() error { return errors.New("boom") }
+	executeFunc = func() cmd.ExecuteResult {
+		return cmd.ExecuteResult{Err: errors.New("boom")}
+	}
 	var exitCode int
 	exitFunc = func(code int) { exitCode = code }
 
@@ -57,7 +59,6 @@ func TestMain_JSONErrorOutput(t *testing.T) {
 		exitFunc = origExit
 		outWriter = origOut
 		errWriter = origErr
-		cmd.SetOutputForTest("text") // Reset output format
 	}()
 
 	// Capture output
@@ -68,13 +69,15 @@ func TestMain_JSONErrorOutput(t *testing.T) {
 	var exitCode int
 	exitFunc = func(code int) { exitCode = code }
 
-	// Set JSON mode and simulate API error
-	cmd.SetOutputForTest("json")
-	executeFunc = func() error {
-		return &api.APIError{
-			Code:       api.ErrCodeNotFound,
-			StatusCode: 404,
-			Message:    "employee not found",
+	// Simulate JSON-mode API error via ExecuteResult
+	executeFunc = func() cmd.ExecuteResult {
+		return cmd.ExecuteResult{
+			Err: &api.APIError{
+				Code:       api.ErrCodeNotFound,
+				StatusCode: 404,
+				Message:    "employee not found",
+			},
+			JSONOutput: true,
 		}
 	}
 

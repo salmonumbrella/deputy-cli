@@ -18,18 +18,24 @@ var (
 	BuildDate = "unknown"
 )
 
-type globalFlags struct {
-	Output     string
+// ExecuteResult carries information from a completed Execute call so the
+// caller can format errors without reading package-level globals.
+type ExecuteResult struct {
+	Err        error
+	JSONOutput bool
 	Debug      bool
-	Query      string
-	Raw        bool
-	NoColor    bool
-	NoKeychain bool
 }
 
-var flags globalFlags
-
 func NewRootCmd() *cobra.Command {
+	var fl struct {
+		Output     string
+		Debug      bool
+		Query      string
+		Raw        bool
+		NoColor    bool
+		NoKeychain bool
+	}
+
 	cmd := &cobra.Command{
 		Use:     "deputy",
 		Short:   "CLI for Deputy workforce management API",
@@ -44,18 +50,18 @@ func NewRootCmd() *cobra.Command {
 			if !iocontext.HasIO(ctx) {
 				ctx = iocontext.WithIO(ctx, iocontext.DefaultIO())
 			}
-			format := strings.ToLower(flags.Output)
+			format := strings.ToLower(fl.Output)
 			if format != "text" && format != "json" {
-				return fmt.Errorf("invalid --output %q (expected text or json)", flags.Output)
+				return fmt.Errorf("invalid --output %q (expected text or json)", fl.Output)
 			}
-			if flags.Raw && format == "text" {
+			if fl.Raw && format == "text" {
 				format = "json"
 			}
 			ctx = outfmt.WithFormat(ctx, format)
-			ctx = outfmt.WithQuery(ctx, flags.Query)
-			ctx = outfmt.WithRaw(ctx, flags.Raw)
-			ctx = WithDebug(ctx, flags.Debug)
-			ctx = WithNoKeychain(ctx, flags.NoKeychain)
+			ctx = outfmt.WithQuery(ctx, fl.Query)
+			ctx = outfmt.WithRaw(ctx, fl.Raw)
+			ctx = WithDebug(ctx, fl.Debug)
+			ctx = WithNoKeychain(ctx, fl.NoKeychain)
 			cmd.SetContext(ctx)
 			return nil
 		},
@@ -65,12 +71,12 @@ func NewRootCmd() *cobra.Command {
 
 	cmd.SetVersionTemplate("deputy version {{.Version}}\n  commit: " + CommitSHA + "\n  built:  " + BuildDate + "\n")
 
-	cmd.PersistentFlags().StringVarP(&flags.Output, "output", "o", "text", "Output format: text or json")
-	cmd.PersistentFlags().BoolVar(&flags.Debug, "debug", false, "Enable debug logging")
-	cmd.PersistentFlags().StringVarP(&flags.Query, "query", "q", "", "JQ filter for JSON output")
-	cmd.PersistentFlags().BoolVar(&flags.Raw, "raw", false, "Output JSON Lines (one object per line)")
-	cmd.PersistentFlags().BoolVar(&flags.NoColor, "no-color", false, "Disable colored output")
-	cmd.PersistentFlags().BoolVar(&flags.NoKeychain, "no-keychain", false, "Do not read credentials from keychain (use env/.env only)")
+	cmd.PersistentFlags().StringVarP(&fl.Output, "output", "o", "text", "Output format: text or json")
+	cmd.PersistentFlags().BoolVar(&fl.Debug, "debug", false, "Enable debug logging")
+	cmd.PersistentFlags().StringVarP(&fl.Query, "query", "q", "", "JQ filter for JSON output")
+	cmd.PersistentFlags().BoolVar(&fl.Raw, "raw", false, "Output JSON Lines (one object per line)")
+	cmd.PersistentFlags().BoolVar(&fl.NoColor, "no-color", false, "Disable colored output")
+	cmd.PersistentFlags().BoolVar(&fl.NoKeychain, "no-keychain", false, "Do not read credentials from keychain (use env/.env only)")
 
 	cmd.AddCommand(newVersionCmd())
 	cmd.AddCommand(newCompletionCmd())
@@ -93,21 +99,25 @@ func NewRootCmd() *cobra.Command {
 	return cmd
 }
 
-func Execute() error {
-	return NewRootCmd().ExecuteContext(context.Background())
-}
+// Execute creates a root command, runs it, and returns the result including
+// the resolved output format and debug flag so the caller can format errors
+// without consulting package-level globals.
+func Execute() ExecuteResult {
+	var result ExecuteResult
+	root := NewRootCmd()
 
-// IsDebug returns the current debug flag value.
-func IsDebug() bool {
-	return flags.Debug
-}
+	// Wrap PersistentPreRunE to capture resolved values after flag parsing.
+	origPreRun := root.PersistentPreRunE
+	root.PersistentPreRunE = func(cmd *cobra.Command, args []string) error {
+		if err := origPreRun(cmd, args); err != nil {
+			return err
+		}
+		ctx := cmd.Context()
+		result.JSONOutput = outfmt.GetFormat(ctx) == "json"
+		result.Debug = DebugFromContext(ctx)
+		return nil
+	}
 
-// IsJSONOutput returns true if the output format is JSON.
-func IsJSONOutput() bool {
-	return strings.ToLower(flags.Output) == "json" || flags.Raw
-}
-
-// SetOutputForTest allows tests to override the output format.
-func SetOutputForTest(format string) {
-	flags.Output = format
+	result.Err = root.ExecuteContext(context.Background())
+	return result
 }
