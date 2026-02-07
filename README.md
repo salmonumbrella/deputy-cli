@@ -91,6 +91,28 @@ EOF
 deputy --no-keychain auth test
 ```
 
+### Troubleshooting (412 Precondition Failed)
+
+If `deputy auth test` (or `deputy employees list`) returns `API error 412: request failed`, run with debug enabled so you can see the exact URL being called:
+
+```bash
+deputy --no-keychain --debug auth test
+```
+
+Common fixes:
+
+```bash
+# 1) Your tenant might not use install.<geo>.deputy.com
+# Provide a full base URL (host or /api/v1 URL is fine).
+export DEPUTY_BASE_URL="https://YOUR_INSTALL.deputy.com/api/v1"
+export DEPUTY_TOKEN="..."
+deputy --no-keychain --debug auth test
+
+# 2) Some tokens require a different Authorization scheme.
+export DEPUTY_AUTH_SCHEME="OAuth"
+deputy --no-keychain --debug auth test
+```
+
 ## Error Handling
 
 ### Text Mode (default)
