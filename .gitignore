@@ -33,3 +33,7 @@ CLAUDE.md
 # Build artifacts
 api.test
 digest.txt
+
+# Local-only
+.private-journal/
+evals/
