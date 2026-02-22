@@ -1,0 +1,85 @@
+version: 2
+
+project_name: deputy-cli
+
+builds:
+  # macOS builds - require CGO for keychain access (99designs/keyring uses go-keychain)
+  - id: deputy-darwin
+    main: ./cmd/deputy
+    binary: deputy
+    env:
+      - CGO_ENABLED=1
+    goos:
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w
+      - -X github.com/salmonumbrella/deputy-cli/internal/cmd.Version={{.Version}}
+      - -X github.com/salmonumbrella/deputy-cli/internal/cmd.CommitSHA={{.ShortCommit}}
+      - -X github.com/salmonumbrella/deputy-cli/internal/cmd.BuildDate={{.Date}}
+
+  # Linux and Windows builds - no CGO needed
+  - id: deputy-other
+    main: ./cmd/deputy
+    binary: deputy
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w
+      - -X github.com/salmonumbrella/deputy-cli/internal/cmd.Version={{.Version}}
+      - -X github.com/salmonumbrella/deputy-cli/internal/cmd.CommitSHA={{.ShortCommit}}
+      - -X github.com/salmonumbrella/deputy-cli/internal/cmd.BuildDate={{.Date}}
+
+archives:
+  - id: default
+    formats:
+      - tar.gz
+    format_overrides:
+      - goos: windows
+        formats:
+          - zip
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    files:
+      - README.md
+      - LICENSE
+
+checksum:
+  name_template: "checksums.txt"
+  algorithm: sha256
+
+release:
+  # Allow re-running the same tag release without failing on pre-existing assets.
+  replace_existing_artifacts: true
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+      - "^ci:"
+      - Merge pull request
+      - Merge branch
+
+brews:
+  - name: deputy-cli
+    repository:
+      owner: salmonumbrella
+      name: homebrew-tap
+      token: "{{ .Env.HOMEBREW_TAP_TOKEN }}"
+    directory: Formula
+    homepage: "https://github.com/salmonumbrella/deputy-cli"
+    description: "CLI for Deputy to manage employees, timesheets, rosters, and leave"
+    license: "MIT"
+    install: |
+      bin.install "deputy"
+    test: |
+      system "#{bin}/deputy", "--help"

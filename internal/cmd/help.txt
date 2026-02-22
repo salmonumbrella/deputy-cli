@@ -1,0 +1,146 @@
+deputy - CLI for Deputy workforce management API
+
+Aliases:
+  employees=employee=emp=e  timesheets=timesheet=ts=t
+  rosters=roster=shifts=shift=r  locations=location=loc
+  departments=department=dept=opunit=d=areas=area
+  webhooks=webhook=wh  resource=res  pay=payroll=rates
+  sales=metrics  leave=leaves
+
+Auth:
+  deputy auth login                     Browser-based OAuth login
+  deputy auth add                       Add token manually
+  deputy auth test                      Verify credentials work
+  deputy auth status                    Show current auth state
+  deputy auth logout                    Remove stored credentials
+
+Managing employees:
+  deputy employees list                 List all employees
+  deputy employees get ID               Get employee details
+  deputy employees add                  Add new employee
+  deputy employees update ID            Update employee fields
+  deputy employees terminate ID         Terminate an employee
+  deputy employees invite ID            Send onboarding invite
+  deputy employees assign-location ID   Assign to a location
+  deputy employees remove-location ID   Remove from a location
+  deputy employees reactivate ID        Reactivate terminated employee
+  deputy employees delete ID            Permanently delete employee
+  deputy employees add-unavailability ID  Add unavailability period
+
+Time tracking:
+  deputy timesheets list                List your timesheets
+  deputy timesheets list --employee ID  List employee's timesheets
+  deputy timesheets get ID              Get timesheet details
+  deputy timesheets update ID           Update timesheet fields
+  deputy timesheets clock-in            Clock in (current user or --employee)
+  deputy timesheets clock-out ID        Clock out a timesheet
+  deputy timesheets start-break ID      Start a break
+  deputy timesheets end-break ID        End a break
+  deputy timesheets list-pay-rules      List pay rules for employee
+  deputy timesheets select-pay-rule     Select pay rule for employee
+
+Scheduling:
+  deputy rosters list                   List upcoming rosters
+  deputy rosters get ID                 Get roster details
+  deputy rosters create                 Create a new roster
+  deputy rosters copy ID                Copy an existing roster
+  deputy rosters publish ID             Publish a roster
+  deputy rosters discard ID             Discard unpublished roster
+  deputy rosters swap ID                Swap roster with another
+
+Locations:
+  deputy locations list                 List all locations
+  deputy locations get ID               Get location details
+  deputy locations add                  Add a new location
+  deputy locations update ID            Update location fields
+  deputy locations archive ID           Archive a location
+  deputy locations delete ID            Delete a location
+  deputy locations settings ID          View location settings
+  deputy locations settings-update ID   Update location settings
+
+Leave management:
+  deputy leave list                     List leave requests
+  deputy leave get ID                   Get leave details
+  deputy leave add                      Submit a leave request
+  deputy leave approve ID               Approve a leave request
+  deputy leave decline ID               Decline a leave request
+
+Departments:
+  deputy departments list               List departments
+  deputy departments get ID             Get department details
+  deputy departments add                Add department
+  deputy departments update ID          Update department
+  deputy departments delete ID          Delete department
+
+Pay:
+  deputy pay awards list                List available awards
+  deputy pay awards get ID              Get award details
+  deputy pay awards set ID              Set award rate
+  deputy pay agreements list            List pay agreements
+  deputy pay agreements get ID          Get agreement details
+  deputy pay agreements update ID       Update agreement
+
+Sales:
+  deputy sales list                     List sales data
+  deputy sales add                      Add sales entry
+
+Management:
+  deputy management memo list           List memos
+  deputy management memo add            Post a memo
+  deputy management journal list        List journal entries
+  deputy management journal add         Post a journal entry
+
+Webhooks:
+  deputy webhooks list                  List webhooks
+  deputy webhooks get ID                Get webhook details
+  deputy webhooks add                   Register a webhook
+  deputy webhooks delete ID             Delete a webhook
+
+Self-service:
+  deputy me info                        Current user info
+  deputy me timesheets                  Your timesheets
+  deputy me rosters                     Your upcoming rosters
+  deputy me leave                       Your leave requests
+
+Resource discovery:
+  deputy resource list                  List all API resource types
+  deputy resource info NAME             Show resource fields/assocs
+  deputy resource query NAME            Query resources with filters
+  deputy resource get NAME ID           Get resource by ID
+
+Shortcuts (action-first):
+  deputy list employees                 Same as: deputy employees list
+  deputy get employee 123               Same as: deputy employees get 123
+
+Global flags:
+  -o, --output text|json    Output format (auto-detects json when piped)
+  -q, --query EXPR          jq filter for JSON output
+  --raw                     JSON Lines mode (one object per line)
+  --debug                   Show HTTP requests/responses
+  --no-color                Disable colored output
+  --no-keychain             Skip keychain, use env vars only
+
+List flags (on list subcommands):
+  --limit N                 Maximum results (0 = unlimited)
+  --offset N                Skip first N results
+  --fail-empty              Exit 4 when list results are empty (JSON mode)
+
+Exit codes:
+  0  success        3  auth error      5  rate limited
+  1  general error  4  not found       6  server/temp error
+  2  input error
+
+Environment:
+  DEPUTY_TOKEN        API token (skips keychain)
+  DEPUTY_INSTALL      Install name (e.g., mycompany)
+  DEPUTY_GEO          Region: au, uk, na
+  DEPUTY_OUTPUT       Default output format (text or json)
+  DEPUTY_NO_KEYCHAIN  Set to disable keychain access
+  DEPUTY_ENV_FILE     Dotenv path override (loads only this file when set)
+  DEPUTY_CREDENTIALS_DIR  File-backend credential directory
+  DEPUTY_KEYRING_PASSWORD Password for encrypted file keyring (headless/CI)
+  DEPUTY_KEYRING_BACKEND  Keyring backend override (auto, file, keychain, ...)
+  ~/.openclaw/.env    Auto-loaded when DEPUTY_ENV_FILE is not set
+
+Discovery:
+  deputy COMMAND --help     Detailed help for any command

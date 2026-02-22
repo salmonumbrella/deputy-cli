@@ -1,0 +1,42 @@
+# Binaries
+bin/
+/deputy
+
+# Dependencies
+vendor/
+
+# IDE & AI
+.idea/
+.vscode/
+.claude/
+.cursor/
+.specstory/
+CLAUDE.md
+*.swp
+*.swo
+*~
+
+# Agent artifacts
+.dm/
+.private-journal/
+
+# OS
+.DS_Store
+
+# Test
+coverage.out
+coverage.html
+
+# Build
+dist/
+
+# Documentation (plans/drafts)
+docs/
+plans/
+
+# Build artifacts
+api.test
+digest.txt
+
+# Local-only
+evals/
